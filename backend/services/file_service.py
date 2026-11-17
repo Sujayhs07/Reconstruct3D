@@ -1,6 +1,7 @@
 import os
 import hashlib
 from pathlib import Path
+from typing import Optional
 from fastapi import HTTPException
 from backend.config import settings
 
@@ -35,7 +36,7 @@ def init_project_directories(project_id: str) -> dict[str, Path]:
 def calculate_file_hash(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
-def is_allowed_file(filename: str) -> bool:
+def is_allowed_file(filename: Optional[str]) -> bool:
     if not filename or "." not in filename:
         return False
     ext = filename.rsplit(".", 1)[1].lower()

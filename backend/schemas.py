@@ -1,6 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from datetime import datetime
-from typing import Optional, List
+from typing import Any, Optional, List
 from backend.services.file_service import get_relative_url
 
 class ProjectCreate(BaseModel):
@@ -96,7 +96,7 @@ class ReconstructionArtifactResponse(BaseModel):
 
     @field_validator("file_path", mode="before")
     @classmethod
-    def normalize_file_path(cls, value: str) -> str:
+    def normalize_file_path(cls, value: Any) -> Any:
         if isinstance(value, str) and not value.startswith("/storage/"):
             return get_relative_url(value)
         return value
@@ -121,8 +121,8 @@ class ProjectResponse(BaseModel):
     updated_at: datetime
 
 class ProjectDetailResponse(ProjectResponse):
-    images: List[ProjectImageResponse] = []
-    artifacts: List[ReconstructionArtifactResponse] = []
+    images: List[ProjectImageResponse] = Field(default_factory=list)
+    artifacts: List[ReconstructionArtifactResponse] = Field(default_factory=list)
 
 class ReconstructionStartRequest(BaseModel):
     quality: str = "medium"  # low, medium, high

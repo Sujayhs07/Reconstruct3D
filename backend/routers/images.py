@@ -38,14 +38,16 @@ async def upload_images(
     max_size_bytes = settings.MAX_IMAGE_UPLOAD_SIZE_MB * 1024 * 1024
 
     for file in files:
-        if not is_allowed_file(file.filename):
+        filename = file.filename
+        if not filename or not is_allowed_file(filename):
             continue
 
+        safe_filename = os.path.basename(filename)
         contents = await file.read()
         if len(contents) > max_size_bytes:
             raise HTTPException(
                 status_code=400,
-                detail=f"File {file.filename} exceeds the maximum allowed size of {settings.MAX_IMAGE_UPLOAD_SIZE_MB}MB."
+                detail=f"File {safe_filename} exceeds the maximum allowed size of {settings.MAX_IMAGE_UPLOAD_SIZE_MB}MB."
             )
 
         file_hash = calculate_file_hash(contents)
@@ -53,9 +55,9 @@ async def upload_images(
 
         # Analyze image quality with OpenCV
         try:
-            analysis = CVService.analyze_image_quality(contents, file.filename)
+            analysis = CVService.analyze_image_quality(contents, safe_filename)
         except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Image validation failed for {file.filename}: {str(e)}")
+            raise HTTPException(status_code=400, detail=f"Image validation failed for {safe_filename}: {str(e)}")
 
         analysis["is_duplicate"] = is_duplicate
         if is_duplicate:
@@ -66,7 +68,6 @@ async def upload_images(
                 analysis["warning_reason"] = warning
 
         # Generate unique filename to avoid collisions
-        safe_filename = os.path.basename(file.filename or "upload.jpg")
         ext = safe_filename.rsplit(".", 1)[-1].lower() if "." in safe_filename else "jpg"
         unique_name = f"{uuid.uuid4().hex[:12]}_{safe_filename}"
         dest_path = dirs["source_images"] / unique_name

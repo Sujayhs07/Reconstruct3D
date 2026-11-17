@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = f"sqlite:///{STORAGE_DIR / 'reconstruct3d.db'}"
     COLMAP_PATH: str = os.getenv("COLMAP_PATH", str(DEFAULT_COLMAP_BAT if DEFAULT_COLMAP_BAT.exists() else "colmap"))
     MAX_IMAGE_UPLOAD_SIZE_MB: int = 50
-    ALLOWED_EXTENSIONS: set = {"jpg", "jpeg", "png", "webp"}
+    ALLOWED_EXTENSIONS: set[str] = {"jpg", "jpeg", "png", "webp"}
     CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"]
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
