@@ -50,20 +50,30 @@ class Open3DService:
         pcd = Open3DService.load_point_cloud(input_pcd_path)
         orig_count = len(pcd.points)
 
-        # Statistical Outlier Removal
-        cleaned_pcd, ind = pcd.remove_statistical_outlier(
-            nb_neighbors=nb_neighbors,
-            std_ratio=std_ratio
-        )
+        # Statistical Outlier Removal (safe for small point clouds)
+        if orig_count > 3:
+            effective_neighbors = min(nb_neighbors, orig_count - 1)
+            cleaned_pcd, _ = pcd.remove_statistical_outlier(
+                nb_neighbors=effective_neighbors,
+                std_ratio=std_ratio
+            )
+            if cleaned_pcd.is_empty():
+                cleaned_pcd = pcd
+        else:
+            cleaned_pcd = pcd
         cleaned_count = len(cleaned_pcd.points)
 
-        # Normal Estimation if not present or requested
-        if estimate_normals_flag or not cleaned_pcd.has_normals():
+        # Normal Estimation using adaptive radius for arbitrary SfM scene scale
+        if (estimate_normals_flag or not cleaned_pcd.has_normals()) and cleaned_count >= 3:
+            bbox = cleaned_pcd.get_axis_aligned_bounding_box()
+            extent_diag = float(np.linalg.norm(bbox.get_extent()))
+            adaptive_radius = max(0.1, extent_diag * 0.05) if extent_diag > 0 else 0.1
             cleaned_pcd.estimate_normals(
-                search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30)
+                search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=adaptive_radius, max_nn=min(30, cleaned_count))
             )
             try:
-                cleaned_pcd.orient_normals_consistent_tangent_plane(k=15)
+                if cleaned_count >= 15:
+                    cleaned_pcd.orient_normals_consistent_tangent_plane(k=min(15, cleaned_count - 1))
             except Exception:
                 pass
 
@@ -94,11 +104,15 @@ class Open3DService:
         pcd = Open3DService.load_point_cloud(input_pcd_path)
 
         if not pcd.has_normals():
+            bbox = pcd.get_axis_aligned_bounding_box()
+            extent_diag = float(np.linalg.norm(bbox.get_extent()))
+            adaptive_radius = max(0.1, extent_diag * 0.05) if extent_diag > 0 else 0.1
             pcd.estimate_normals(
-                search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=0.1, max_nn=30)
+                search_param=o3d.geometry.KDTreeSearchParamHybrid(radius=adaptive_radius, max_nn=min(30, len(pcd.points)))
             )
             try:
-                pcd.orient_normals_consistent_tangent_plane(k=15)
+                if len(pcd.points) >= 15:
+                    pcd.orient_normals_consistent_tangent_plane(k=min(15, len(pcd.points) - 1))
             except Exception:
                 pass
 
@@ -109,16 +123,17 @@ class Open3DService:
 
         densities_arr = np.asarray(densities)
         if len(densities_arr) > 0 and density_quantile > 0:
-            # Filter low density boundary / hallucinated vertices
+            # Filter low density boundary / hallucinated vertices (only if it won't empty the mesh)
             threshold = np.quantile(densities_arr, density_quantile)
             vertices_to_remove = densities_arr < threshold
-            mesh.remove_vertices_by_mask(vertices_to_remove)
+            if not np.all(vertices_to_remove):
+                mesh.remove_vertices_by_mask(vertices_to_remove)
 
         raw_vertex_count = len(mesh.vertices)
         raw_triangle_count = len(mesh.triangles)
 
         # Quadric decimation mesh simplification
-        if raw_triangle_count > target_triangles:
+        if target_triangles and raw_triangle_count > target_triangles:
             mesh = mesh.simplify_quadric_decimation(target_number_of_triangles=target_triangles)
 
         mesh.remove_degenerate_triangles()

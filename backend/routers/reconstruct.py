@@ -89,11 +89,11 @@ def get_reconstruction_logs(
     logs = (
         db.query(ReconstructionLog)
         .filter(ReconstructionLog.project_id == project_id)
-        .order_by(ReconstructionLog.id.asc())
+        .order_by(ReconstructionLog.id.desc())
         .limit(limit)
         .all()
     )
-    return logs
+    return list(reversed(logs))
 
 @router.get("/camera_poses")
 def get_camera_poses(project_id: str, db: Session = Depends(get_db)):

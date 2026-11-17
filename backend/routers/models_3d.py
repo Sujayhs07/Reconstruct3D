@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -36,14 +37,18 @@ def download_model_file(project_id: str, filename: str, db: Session = Depends(ge
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
+    safe_filename = os.path.basename(filename)
+    if not safe_filename or safe_filename != filename:
+        raise HTTPException(status_code=400, detail="Invalid filename.")
+
     dirs = init_project_directories(project_id)
     # Search in exports, meshes, point_clouds
     for search_dir in [dirs["exports"], dirs["meshes"], dirs["point_clouds"]]:
-        candidate = search_dir / filename
+        candidate = search_dir / safe_filename
         if candidate.exists():
             return FileResponse(
                 path=str(candidate),
-                filename=filename,
+                filename=safe_filename,
                 media_type="application/octet-stream"
             )
 

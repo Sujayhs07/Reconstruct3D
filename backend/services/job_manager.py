@@ -1,4 +1,5 @@
 import os
+import shutil
 import threading
 import asyncio
 from datetime import datetime
@@ -17,9 +18,14 @@ class ConnectionManager:
     def __init__(self):
         self.active_connections: Dict[str, Set[WebSocket]] = {}
         self._lock = threading.Lock()
+        self.loop: Optional[asyncio.AbstractEventLoop] = None
 
     async def connect(self, project_id: str, websocket: WebSocket):
         await websocket.accept()
+        try:
+            self.loop = asyncio.get_running_loop()
+        except RuntimeError:
+            pass
         with self._lock:
             if project_id not in self.active_connections:
                 self.active_connections[project_id] = set()
@@ -41,13 +47,23 @@ class ConnectionManager:
             except Exception:
                 pass
 
+    def broadcast_from_thread(self, project_id: str, data: dict):
+        loop = self.loop
+        if loop and loop.is_running():
+            try:
+                asyncio.run_coroutine_threadsafe(
+                    self.broadcast(project_id, data), loop
+                )
+            except Exception:
+                pass
+
 connection_manager = ConnectionManager()
 
 class JobManager:
     def __init__(self):
         self.cancel_flags: Dict[str, bool] = {}
         self.active_threads: Dict[str, threading.Thread] = {}
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
 
     def is_running(self, project_id: str) -> bool:
         with self._lock:
@@ -63,6 +79,8 @@ class JobManager:
 
     def log_and_notify(self, project_id: str, stage: str, message: str, level: str = "INFO"):
         # Persist log to database
+        log_id = None
+        now = datetime.utcnow()
         db = SessionLocal()
         try:
             log_entry = ReconstructionLog(
@@ -70,32 +88,27 @@ class JobManager:
                 stage=stage,
                 message=message,
                 level=level,
-                timestamp=datetime.utcnow()
+                timestamp=now
             )
             db.add(log_entry)
             db.commit()
+            log_id = log_entry.id
         except Exception:
             db.rollback()
         finally:
             db.close()
 
-        # Fire and forget async broadcast via event loop if available
+        # Fire and forget async broadcast via captured FastAPI event loop
         data = {
             "type": "log",
+            "id": log_id,
             "project_id": project_id,
             "stage": stage,
             "message": message,
             "level": level,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": now.isoformat()
         }
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                asyncio.run_coroutine_threadsafe(
-                    connection_manager.broadcast(project_id, data), loop
-                )
-        except Exception:
-            pass
+        connection_manager.broadcast_from_thread(project_id, data)
 
     def update_project_status(
         self,
@@ -108,7 +121,8 @@ class JobManager:
         mesh_vertices: Optional[int] = None,
         mesh_triangles: Optional[int] = None,
         registered_images: Optional[int] = None,
-        error_msg: Optional[str] = None
+        error_msg: Optional[str] = None,
+        clear_error: bool = False
     ):
         db = SessionLocal()
         try:
@@ -130,7 +144,9 @@ class JobManager:
                     proj.mesh_triangle_count = mesh_triangles
                 if registered_images is not None:
                     proj.registered_image_count = registered_images
-                if error_msg is not None:
+                if clear_error:
+                    proj.error_message = None
+                elif error_msg is not None:
                     proj.error_message = error_msg
                 proj.updated_at = datetime.utcnow()
                 db.commit()
@@ -149,14 +165,7 @@ class JobManager:
                     "mesh_triangle_count": proj.mesh_triangle_count,
                     "error_message": proj.error_message
                 }
-                try:
-                    loop = asyncio.get_event_loop()
-                    if loop.is_running():
-                        asyncio.run_coroutine_threadsafe(
-                            connection_manager.broadcast(project_id, data), loop
-                        )
-                except Exception:
-                    pass
+                connection_manager.broadcast_from_thread(project_id, data)
         except Exception:
             db.rollback()
         finally:
@@ -201,10 +210,38 @@ class JobManager:
 
         current_stage = "initialization"
         try:
-            self.update_project_status(project_id, status="reconstructing", active_stage="initialization", stage_progress=0.05)
+            # Clear stale logs and artifacts from prior reconstruction runs
+            db_clean = SessionLocal()
+            try:
+                db_clean.query(ReconstructionLog).filter(ReconstructionLog.project_id == project_id).delete()
+                db_clean.query(ReconstructionArtifact).filter(ReconstructionArtifact.project_id == project_id).delete()
+                db_clean.commit()
+            except Exception:
+                db_clean.rollback()
+            finally:
+                db_clean.close()
+
+            # Reset intermediate working directories so deleted images or prior models don't leak into new run
+            for dir_key in ["processed_images", "colmap_sparse", "colmap_dense"]:
+                if dirs[dir_key].exists():
+                    shutil.rmtree(dirs[dir_key], ignore_errors=True)
+                dirs[dir_key].mkdir(parents=True, exist_ok=True)
+
+            self.update_project_status(
+                project_id,
+                status="reconstructing",
+                active_stage="initialization",
+                stage_progress=0.05,
+                registered_images=0,
+                sparse_points=0,
+                dense_points=0,
+                mesh_vertices=0,
+                mesh_triangles=0,
+                clear_error=True
+            )
             log_cb(f"Reconstruction started for project {project_id}")
 
-            source_images = list(dirs["source_images"].glob("*.*"))
+            source_images = [p for p in dirs["source_images"].glob("*.*") if p.is_file()]
             if len(source_images) < 2:
                 raise ValueError(f"Insufficient images ({len(source_images)} found). Photogrammetry requires at least 2 overlapping images.")
 
@@ -222,6 +259,8 @@ class JobManager:
             log_cb("Image preprocessing complete.")
 
             # --- STAGE 2: COLMAP Feature Extraction ---
+            if cancel_check():
+                raise InterruptedError("Reconstruction canceled by user.")
             current_stage = "feature_extraction"
             self.update_project_status(project_id, active_stage="feature_extraction", stage_progress=0.20)
             log_cb("Extracting SIFT features using COLMAP...")
@@ -236,6 +275,8 @@ class JobManager:
                 log_callback=log_cb,
                 cancel_check=cancel_check
             )
+            if cancel_check():
+                raise InterruptedError("Reconstruction canceled by user.")
             if not success:
                 raise RuntimeError("COLMAP feature extraction failed. Check log for details.")
 
@@ -249,6 +290,8 @@ class JobManager:
                 log_callback=log_cb,
                 cancel_check=cancel_check
             )
+            if cancel_check():
+                raise InterruptedError("Reconstruction canceled by user.")
             if not success:
                 raise RuntimeError("COLMAP feature matching failed.")
 
@@ -265,17 +308,32 @@ class JobManager:
                 log_callback=log_cb,
                 cancel_check=cancel_check
             )
+            if cancel_check():
+                raise InterruptedError("Reconstruction canceled by user.")
             if not success:
                 raise RuntimeError("COLMAP incremental mapper failed.")
 
-            # Locate reconstructed sub-model (typically folder '0')
-            model_0 = sparse_out / "0"
-            if not model_0.exists():
-                # Check if sparse_out contains .bin files directly
-                if (sparse_out / "cameras.bin").exists() or (sparse_out / "cameras.txt").exists():
-                    model_0 = sparse_out
-                else:
-                    raise RuntimeError("COLMAP mapper did not produce a valid model. Insufficient feature matches or overlap between images.")
+            # Locate the largest reconstructed sub-model among COLMAP outputs (e.g. '0', '1', ...)
+            candidate_models = [
+                d for d in sparse_out.iterdir()
+                if d.is_dir() and d.name.isdigit() and ((d / "images.bin").exists() or (d / "images.txt").exists())
+            ]
+            if candidate_models:
+                def _model_size_score(model_dir: Path) -> int:
+                    pts_bin = model_dir / "points3D.bin"
+                    pts_txt = model_dir / "points3D.txt"
+                    imgs_bin = model_dir / "images.bin"
+                    imgs_txt = model_dir / "images.txt"
+                    score = 0
+                    for f in (pts_bin, pts_txt, imgs_bin, imgs_txt):
+                        if f.exists():
+                            score += f.stat().st_size
+                    return score
+                model_0 = max(candidate_models, key=_model_size_score)
+            elif (sparse_out / "cameras.bin").exists() or (sparse_out / "cameras.txt").exists():
+                model_0 = sparse_out
+            else:
+                raise RuntimeError("COLMAP mapper did not produce a valid model. Insufficient feature matches or overlap between images.")
 
             # Convert sparse model to TXT and PLY
             sparse_ply_path = dirs["point_clouds"] / "sparse_points.ply"
@@ -346,6 +404,12 @@ class JobManager:
                             pcd_stats = Open3DService.get_point_cloud_stats(Open3DService.load_point_cloud(dense_ply_path))
                             dense_count = pcd_stats["point_count"]
                             log_cb(f"Dense stereo fusion succeeded: {dense_count} dense points.")
+                        else:
+                            log_cb("Stereo fusion produced no dense point cloud; falling back to sparse point cloud.", "WARNING")
+                    else:
+                        log_cb("Dense PatchMatchStereo unavailable (requires CUDA GPU); falling back to sparse point cloud for cleaning & meshing.", "WARNING")
+                else:
+                    log_cb("Image undistortion failed; falling back to sparse point cloud.", "WARNING")
 
             self.update_project_status(
                 project_id,

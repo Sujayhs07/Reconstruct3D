@@ -61,15 +61,15 @@ class ColmapService:
         log_callback: Optional[Callable[[str, str], None]] = None,
         cancel_check: Optional[Callable[[], bool]] = None
     ) -> bool:
-        """Runs COLMAP feature_extractor on CPU"""
+        """Runs COLMAP feature_extractor on CPU (COLMAP 4.x compatible)"""
         args = [
             "feature_extractor",
             "--database_path", str(database_path),
             "--image_path", str(image_path),
             "--ImageReader.single_camera", "1",
             "--ImageReader.camera_model", "SIMPLE_RADIAL",
-            "--SiftExtraction.use_gpu", "0",
-            "--SiftExtraction.num_threads", "-1"
+            "--FeatureExtraction.use_gpu", "0",
+            "--FeatureExtraction.num_threads", "-1"
         ]
         ret = self._run_colmap_command(args, log_callback, cancel_check)
         return ret == 0
@@ -80,12 +80,12 @@ class ColmapService:
         log_callback: Optional[Callable[[str, str], None]] = None,
         cancel_check: Optional[Callable[[], bool]] = None
     ) -> bool:
-        """Runs COLMAP exhaustive_matcher on CPU"""
+        """Runs COLMAP exhaustive_matcher on CPU (COLMAP 4.x compatible)"""
         args = [
             "exhaustive_matcher",
             "--database_path", str(database_path),
-            "--SiftMatching.use_gpu", "0",
-            "--SiftMatching.num_threads", "-1"
+            "--FeatureMatching.use_gpu", "0",
+            "--FeatureMatching.num_threads", "-1"
         ]
         ret = self._run_colmap_command(args, log_callback, cancel_check)
         return ret == 0
@@ -105,6 +105,7 @@ class ColmapService:
             "--database_path", str(database_path),
             "--image_path", str(image_path),
             "--output_path", str(output_sparse_dir),
+            "--Mapper.min_model_size", "3",
             "--Mapper.num_threads", "-1"
         ]
         ret = self._run_colmap_command(args, log_callback, cancel_check)
@@ -159,26 +160,33 @@ class ColmapService:
 
         if images_file.exists():
             with open(images_file, "r", encoding="utf-8") as f:
-                lines = f.readlines()
-                # COLMAP images.txt alternates between image metadata and 2D keypoints
-                for line in lines:
-                    line = line.strip()
-                    if not line or line.startswith("#"):
+                # COLMAP images.txt strictly alternates image metadata lines (even) and 2D keypoints lines (odd)
+                non_comment_idx = 0
+                for raw_line in f:
+                    stripped = raw_line.strip()
+                    if stripped.startswith("#"):
                         continue
-                    parts = line.split()
-                    if len(parts) >= 10 and "." in parts[9]:
-                        # IMAGE_ID, QW, QX, QY, QZ, TX, TY, TZ, CAMERA_ID, NAME
-                        img_id = int(parts[0])
-                        qw, qx, qy, qz = map(float, parts[1:5])
-                        tx, ty, tz = map(float, parts[5:8])
-                        name = parts[9]
-                        registered_images.append(name)
-                        camera_poses.append({
-                            "image_id": img_id,
-                            "image_name": name,
-                            "rotation": [qw, qx, qy, qz],
-                            "translation": [tx, ty, tz]
-                        })
+                    is_header_line = (non_comment_idx % 2 == 0)
+                    non_comment_idx += 1
+                    if not is_header_line or not stripped:
+                        continue
+                    parts = stripped.split()
+                    if len(parts) >= 10:
+                        try:
+                            # IMAGE_ID, QW, QX, QY, QZ, TX, TY, TZ, CAMERA_ID, NAME
+                            img_id = int(parts[0])
+                            qw, qx, qy, qz = map(float, parts[1:5])
+                            tx, ty, tz = map(float, parts[5:8])
+                            name = " ".join(parts[9:])
+                            registered_images.append(name)
+                            camera_poses.append({
+                                "image_id": img_id,
+                                "image_name": name,
+                                "rotation": [qw, qx, qy, qz],
+                                "translation": [tx, ty, tz]
+                            })
+                        except ValueError:
+                            continue
 
         if points_file.exists():
             with open(points_file, "r", encoding="utf-8") as f:

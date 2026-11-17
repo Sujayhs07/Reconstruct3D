@@ -2,7 +2,7 @@ import shutil
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from sqlalchemy import func
+from sqlalchemy import func, case
 from backend.database import get_db
 from backend.models import Project, ProjectImage, ReconstructionArtifact
 from backend.schemas import ProjectCreate, ProjectResponse, ProjectDetailResponse
@@ -36,8 +36,23 @@ def get_stats_summary(db: Session = Depends(get_db)):
     total_projects = db.query(func.count(Project.id)).scalar() or 0
     completed_projects = db.query(func.count(Project.id)).filter(Project.status == "completed").scalar() or 0
     total_images = db.query(func.count(ProjectImage.id)).scalar() or 0
-    total_points = db.query(func.sum(Project.sparse_point_count + Project.dense_point_count)).scalar() or 0
-    total_meshes = db.query(func.count(ReconstructionArtifact.id)).filter(ReconstructionArtifact.artifact_type == "model_mesh").scalar() or 0
+    total_points = (
+        db.query(
+            func.sum(
+                case(
+                    (Project.dense_point_count > 0, Project.dense_point_count),
+                    else_=Project.sparse_point_count
+                )
+            )
+        ).scalar()
+        or 0
+    )
+    total_meshes = (
+        db.query(func.count(func.distinct(ReconstructionArtifact.project_id)))
+        .filter(ReconstructionArtifact.artifact_type == "model_mesh")
+        .scalar()
+        or 0
+    )
 
     return {
         "total_projects": total_projects,

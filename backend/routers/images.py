@@ -57,17 +57,18 @@ async def upload_images(
         except Exception as e:
             raise HTTPException(status_code=400, detail=f"Image validation failed for {file.filename}: {str(e)}")
 
+        analysis["is_duplicate"] = is_duplicate
         if is_duplicate:
-            analysis["is_duplicate"] = True
             warning = "Duplicate image detected."
-            if analysis["warning_reason"]:
+            if analysis.get("warning_reason"):
                 analysis["warning_reason"] += f" | {warning}"
             else:
                 analysis["warning_reason"] = warning
 
         # Generate unique filename to avoid collisions
-        ext = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else "jpg"
-        unique_name = f"{uuid.uuid4().hex[:12]}_{file.filename}"
+        safe_filename = os.path.basename(file.filename or "upload.jpg")
+        ext = safe_filename.rsplit(".", 1)[-1].lower() if "." in safe_filename else "jpg"
+        unique_name = f"{uuid.uuid4().hex[:12]}_{safe_filename}"
         dest_path = dirs["source_images"] / unique_name
 
         with open(dest_path, "wb") as f:
@@ -85,20 +86,20 @@ async def upload_images(
         img_obj = ProjectImage(
             project_id=project_id,
             filename=unique_name,
-            original_filename=file.filename,
+            original_filename=safe_filename,
             file_path=rel_url,
-            width=analysis["width"],
-            height=analysis["height"],
-            file_size=analysis["file_size"],
-            format=analysis["format"],
-            avg_brightness=analysis["avg_brightness"],
-            contrast=analysis["contrast"],
-            sharpness=analysis["sharpness"],
-            is_blurry=analysis["is_blurry"],
-            is_dark=analysis["is_dark"],
-            is_low_res=analysis["is_low_res"],
-            is_duplicate=analysis["is_duplicate"],
-            warning_reason=analysis["warning_reason"],
+            width=analysis.get("width", 0),
+            height=analysis.get("height", 0),
+            file_size=analysis.get("file_size", len(contents)),
+            format=analysis.get("format", ext),
+            avg_brightness=analysis.get("avg_brightness", 0.0),
+            contrast=analysis.get("contrast", 0.0),
+            sharpness=analysis.get("sharpness", 0.0),
+            is_blurry=analysis.get("is_blurry", False),
+            is_dark=analysis.get("is_dark", False),
+            is_low_res=analysis.get("is_low_res", False),
+            is_duplicate=is_duplicate,
+            warning_reason=analysis.get("warning_reason"),
             keypoint_count=kp_count,
             file_hash=file_hash
         )
@@ -106,8 +107,17 @@ async def upload_images(
         uploaded_images.append(img_obj)
         existing_hashes.add(file_hash)
 
+    if not uploaded_images:
+        raise HTTPException(
+            status_code=400,
+            detail="No supported image files provided. Allowed formats: jpg, jpeg, png, webp."
+        )
+
+    db.commit()
+
     # Update project image count and status
-    project.image_count = db.query(ProjectImage).filter(ProjectImage.project_id == project_id).count() + len(uploaded_images)
+    total_imgs = db.query(ProjectImage).filter(ProjectImage.project_id == project_id).count()
+    project.image_count = total_imgs
     if project.status == "created" and project.image_count > 0:
         project.status = "ready"
     db.commit()
@@ -149,9 +159,10 @@ def delete_image(project_id: str, image_id: str, db: Session = Depends(get_db)):
             pass
 
     db.delete(img)
+    db.flush()
     project = db.query(Project).filter(Project.id == project_id).first()
     if project:
-        project.image_count = max(0, project.image_count - 1)
+        project.image_count = db.query(ProjectImage).filter(ProjectImage.project_id == project_id).count()
         if project.image_count == 0 and project.status == "ready":
             project.status = "created"
     db.commit()

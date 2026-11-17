@@ -1,4 +1,5 @@
 import os
+import shutil
 import cv2
 import numpy as np
 from pathlib import Path
@@ -60,6 +61,7 @@ class CVService:
             "is_blurry": is_blurry,
             "is_dark": is_dark,
             "is_low_res": is_low_res,
+            "is_duplicate": False,
             "warning_reason": warning_reason
         }
 
@@ -81,6 +83,17 @@ class CVService:
         h, w = img.shape[:2]
         new_w, new_h = w, h
 
+        os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+        # Preserve original pixels without lossy re-compression if no resize or denoise is required
+        if max(h, w) <= max_dimension and not apply_denoise:
+            shutil.copy2(str(input_path), str(output_path))
+            return {
+                "processed_width": new_w,
+                "processed_height": new_h,
+                "processed_path": str(output_path)
+            }
+
         # Resize if dimensions exceed max_dimension
         if max(h, w) > max_dimension:
             scale = max_dimension / float(max(h, w))
@@ -92,7 +105,6 @@ class CVService:
             # Mild 3x3 Gaussian smoothing to suppress sensor noise without degrading SIFT gradients
             img = cv2.GaussianBlur(img, (3, 3), 0.5)
 
-        os.makedirs(os.path.dirname(output_path), exist_ok=True)
         cv2.imwrite(str(output_path), img, [cv2.IMWRITE_JPEG_QUALITY, 95])
 
         return {
@@ -162,9 +174,11 @@ class CVService:
 
         # Lowe's ratio test
         good_matches = []
-        for m, n in raw_matches:
-            if m.distance < ratio_threshold * n.distance:
-                good_matches.append(m)
+        for pair in raw_matches:
+            if len(pair) == 2:
+                m, n = pair
+                if m.distance < ratio_threshold * n.distance:
+                    good_matches.append(m)
 
         inlier_count = 0
         inlier_mask = None
