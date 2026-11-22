@@ -14,7 +14,8 @@ from backend.routers import (
     features,
     reconstruct,
     models_3d,
-    websocket
+    websocket,
+    settings_router
 )
 
 # Initialize SQLite database schema
@@ -35,8 +36,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Safe StaticFiles handler to prevent access to database or sensitive files
+class SafeStaticFiles(StaticFiles):
+    async def get_response(self, path: str, scope):
+        norm = path.replace("\\", "/").lower()
+        if norm.endswith(".db") or norm.endswith(".sqlite") or "/." in f"/{norm}":
+            raise HTTPException(status_code=403, detail="Access denied.")
+        return await super().get_response(path, scope)
+
 # Mount storage directory for static file access (images, point clouds, meshes)
-app.mount("/storage", StaticFiles(directory=str(settings.STORAGE_DIR)), name="storage")
+app.mount("/storage", SafeStaticFiles(directory=str(settings.STORAGE_DIR)), name="storage")
 
 # Include Routers
 app.include_router(projects.router)
@@ -46,6 +55,7 @@ app.include_router(features.router)
 app.include_router(reconstruct.router)
 app.include_router(models_3d.router)
 app.include_router(websocket.router)
+app.include_router(settings_router.router)
 
 @app.get("/api/health")
 def health_check():

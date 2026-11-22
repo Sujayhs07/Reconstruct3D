@@ -133,7 +133,7 @@ function TemplePoints() {
 
 export default function TempleHeroScene() {
   return (
-    <div className="relative w-full h-[320px] sm:h-[350px] rounded-xl overflow-hidden bg-[#0a0a0d] border border-white/[0.08] shadow-lg cursor-grab active:cursor-grabbing group">
+    <div className="relative w-full h-[280px] sm:h-[340px] lg:h-[380px] rounded-xl overflow-hidden bg-[#0a0a0d] border border-white/[0.08] shadow-lg cursor-grab active:cursor-grabbing group">
       {/* 4 Corner Crop Brackets matching Image 1 */}
       <div className="absolute top-3 left-3 w-3.5 h-3.5 border-t border-l border-zinc-500 pointer-events-none z-10" />
       <div className="absolute top-3 right-3 w-3.5 h-3.5 border-t border-r border-zinc-500 pointer-events-none z-10" />
@@ -161,14 +161,15 @@ export default function TempleHeroScene() {
       </Canvas>
 
       {/* Top Left Interaction Hint */}
-      <div className="absolute top-3 left-8 px-2 py-0.5 rounded bg-zinc-900/80 border border-zinc-800 text-[10px] font-mono text-zinc-400 opacity-60 group-hover:opacity-100 transition-opacity pointer-events-none">
-        Click & drag to orbit · Scroll to zoom
+      <div className="absolute top-3 left-8 px-2 py-0.5 rounded bg-zinc-900/80 border border-zinc-800 text-[10px] font-mono text-zinc-400 opacity-70 group-hover:opacity-100 transition-opacity pointer-events-none">
+        Drag to orbit · Pinch to zoom
       </div>
 
       {/* Live Badge */}
       <div className="absolute bottom-3 right-3 px-2 py-0.5 rounded bg-zinc-900/90 border border-zinc-800 text-[10px] font-mono text-zinc-400 flex items-center space-x-1.5 shadow-sm pointer-events-none">
         <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-        <span>COLMAP Point Cloud Preview</span>
+        <span className="hidden xs:inline">Interactive 3D Point Cloud</span>
+        <span className="xs:hidden">Point Cloud</span>
       </div>
     </div>
   );

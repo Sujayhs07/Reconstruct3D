@@ -3,7 +3,7 @@ import { Info, Box, Cpu, Sparkles, Layers, ShieldCheck, CheckCircle2, BookOpen, 
 
 export default function AboutPage() {
   return (
-    <div className="p-8 max-w-[1300px] mx-auto space-y-6 select-none">
+    <div className="p-4 sm:p-6 lg:p-8 w-full space-y-4 sm:space-y-6 select-none">
       <div className="border-b border-zinc-800 pb-4">
         <h1 className="text-xl font-bold text-zinc-100 flex items-center space-x-2.5 m-0 tracking-tight">
           <Info className="w-5 h-5 text-blue-400" />
@@ -54,10 +54,10 @@ export default function AboutPage() {
               <div className="p-3.5 rounded-lg bg-zinc-950/80 border border-zinc-800/80 space-y-1">
                 <div className="font-semibold text-zinc-200 flex items-center space-x-2">
                   <span className="w-5 h-5 rounded bg-zinc-900 border border-zinc-700/60 flex items-center justify-center text-[10px] font-mono text-sky-400">03</span>
-                  <span>Incremental Structure from Motion (COLMAP SfM)</span>
+                  <span>3D Geometry Reconstruction (AI Cloud & Offline Local Engine)</span>
                 </div>
                 <p className="text-zinc-400 text-[11px] leading-relaxed pl-7">
-                  Selects initial two-view reconstruction pair with broad baseline and high parallax. Alternates between camera resectioning (PnP pose estimation), triangulation of 3D points, and global Bundle Adjustment (Ceres Solver).
+                  Synthesizes complete, watertight 3D models using Free Cloud AI (Hugging Face TripoSR & Meshy.ai) with automatic fallback to local multi-view visual hull silhouette carving and photo texture projection.
                 </p>
               </div>
 
@@ -141,8 +141,8 @@ export default function AboutPage() {
               </div>
 
               <div className="flex items-center justify-between p-2.5 rounded bg-zinc-950/80 border border-zinc-800/80">
-                <span className="text-zinc-400">Photogrammetry Engine</span>
-                <span className="text-emerald-400">COLMAP 4.2.1 CPU</span>
+                <span className="text-zinc-400">3D Reconstruction Engine</span>
+                <span className="text-emerald-400">AI Cloud + 16-Core Offline Engine</span>
               </div>
 
               <div className="flex items-center justify-between p-2.5 rounded bg-zinc-950/80 border border-zinc-800/80">

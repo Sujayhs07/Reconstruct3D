@@ -22,7 +22,10 @@
   box-sizing: border-box;
 }
 
+html,
 body {
+  width: 100%;
+  min-height: 100%;
   margin: 0;
   padding: 0;
   background-color: var(--bg-app);
@@ -34,6 +37,7 @@ body {
 }
 
 #root {
+  width: 100%;
   min-height: 100vh;
   display: flex;
 }
@@ -55,6 +59,15 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #3f3f46;
+}
+
+/* Hide scrollbar for touch carousels and tab bars */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 /* Monospace Utilities with Tabular Numbers */

@@ -47,6 +47,11 @@ export const getProjectModels = (projectId) => api.get(`/projects/${projectId}/m
 export const getModelStats = (projectId) => api.get(`/projects/${projectId}/models/stats`);
 export const getModelDownloadUrl = (projectId, filename) => `/api/projects/${projectId}/models/download/${filename}`;
 
+// Settings & AI Engine
+export const getAppSettings = () => api.get('/settings');
+export const updateAppSettings = (data) => api.post('/settings', data);
+export const testMeshyApiKey = () => api.post('/settings/test-meshy');
+
 // WebSocket URL
 export const getProjectWsUrl = (projectId) => {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';

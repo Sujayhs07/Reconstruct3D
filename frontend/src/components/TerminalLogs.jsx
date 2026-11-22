@@ -9,7 +9,14 @@ export default function TerminalLogs({ projectId, initialLogs = [] }) {
   const logEndRef = useRef(null);
 
   useEffect(() => {
-    setLogs(initialLogs);
+    if (!initialLogs || initialLogs.length === 0) return;
+    setLogs((prev) => {
+      if (prev.length === 0) return initialLogs;
+      const existingKeys = new Set(prev.map((l) => l.id || `${l.timestamp}_${l.message}`));
+      const newItems = initialLogs.filter((l) => !existingKeys.has(l.id || `${l.timestamp}_${l.message}`));
+      if (newItems.length === 0) return prev;
+      return [...prev, ...newItems];
+    });
   }, [initialLogs]);
 
   useEffect(() => {
@@ -34,16 +41,22 @@ export default function TerminalLogs({ projectId, initialLogs = [] }) {
         try {
           const data = JSON.parse(event.data);
           if (data.type === 'log') {
-            setLogs((prev) => [
-              ...prev,
-              {
-                id: Date.now() + Math.random(),
-                stage: data.stage,
-                message: data.message,
-                level: data.level,
-                timestamp: data.timestamp
+            setLogs((prev) => {
+              const key = data.id || `${data.timestamp}_${data.message}`;
+              if (prev.some((l) => (l.id && l.id === data.id) || `${l.timestamp}_${l.message}` === key)) {
+                return prev;
               }
-            ]);
+              return [
+                ...prev,
+                {
+                  id: data.id || Date.now() + Math.random(),
+                  stage: data.stage,
+                  message: data.message,
+                  level: data.level,
+                  timestamp: data.timestamp
+                }
+              ];
+            });
           }
         } catch (e) {
           // ignore

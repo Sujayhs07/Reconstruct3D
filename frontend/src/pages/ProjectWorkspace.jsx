@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useLocation, Link, Outlet, useNavigate } from 'react-router-dom';
 import {
   Image,
@@ -17,12 +17,16 @@ export default function ProjectWorkspace() {
   const navigate = useNavigate();
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
+  const hasLoadedRef = useRef(false);
 
-  const loadProject = async () => {
+  const loadProject = async (isInitial = false) => {
     try {
-      setLoading(true);
+      if (isInitial && !hasLoadedRef.current) {
+        setLoading(true);
+      }
       const res = await getProject(id);
       setProject(res.data);
+      hasLoadedRef.current = true;
     } catch (err) {
       console.error('Failed to load project:', err);
     } finally {
@@ -31,7 +35,8 @@ export default function ProjectWorkspace() {
   };
 
   useEffect(() => {
-    loadProject();
+    hasLoadedRef.current = false;
+    loadProject(true);
   }, [id]);
 
   const navItems = [
@@ -41,7 +46,7 @@ export default function ProjectWorkspace() {
     { path: `/projects/${id}/models`, label: '3D Viewer', icon: Box, highlight: project?.status === 'completed' },
   ];
 
-  const isActive = (p) => location.pathname.startsWith(p);
+  const isActive = (p) => location.pathname.startsWith(p) || (p.endsWith('/models') && location.pathname.startsWith(`/projects/${id}/viewer`));
 
   const handleDelete = async () => {
     if (!window.confirm('Delete this project permanently?')) return;
@@ -53,8 +58,12 @@ export default function ProjectWorkspace() {
     }
   };
 
-  if (loading) {
-    return <div className="p-12 text-zinc-500 font-mono text-xs text-center">Loading project...</div>;
+  if (loading && !project) {
+    return (
+      <div className="p-12 text-zinc-500 font-mono text-xs text-center">
+        Loading project workspace...
+      </div>
+    );
   }
 
   if (!project) {
@@ -67,41 +76,43 @@ export default function ProjectWorkspace() {
   }
 
   return (
-    <div className="p-8 max-w-[1300px] mx-auto space-y-6 select-none">
+    <div className="p-4 sm:p-6 lg:p-8 w-full space-y-4 sm:space-y-6 select-none">
       {/* Project Workspace Header Bar */}
-      <div className="rounded-xl surface-panel p-5 space-y-4 border border-white/[0.08]">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
+      <div className="rounded-xl surface-panel p-4 sm:p-5 space-y-3.5 sm:space-y-4 border border-white/[0.08]">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 border-b border-zinc-800 pb-3.5 sm:pb-4">
           <div className="space-y-1">
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2.5 sm:space-x-3">
               <Link
                 to="/"
-                className="w-7 h-7 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
+                className="w-7 h-7 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-400 hover:text-white transition-colors shrink-0"
                 title="Back to Dashboard"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
               </Link>
-              <h1 className="text-base font-bold text-zinc-100 m-0 tracking-tight">{project.name}</h1>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700">
+              <h1 className="text-sm sm:text-base font-bold text-zinc-100 m-0 tracking-tight truncate max-w-[180px] xs:max-w-xs sm:max-w-none">
+                {project.name}
+              </h1>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700 shrink-0">
                 {project.status.toUpperCase()}
               </span>
             </div>
             {project.description && (
-              <p className="text-xs text-zinc-400 pl-10">{project.description}</p>
+              <p className="text-xs text-zinc-400 pl-9 sm:pl-10 line-clamp-2">{project.description}</p>
             )}
           </div>
 
-          <div className="flex items-center space-x-6 pl-10 md:pl-0">
-            <div className="flex items-center space-x-5 text-xs font-mono text-zinc-400">
+          <div className="flex items-center justify-between md:justify-end space-x-4 sm:space-x-6 pl-9 md:pl-0">
+            <div className="flex items-center space-x-3.5 sm:space-x-5 text-xs font-mono text-zinc-400">
               <div>
-                <span className="text-zinc-500 block text-[10px]">PHOTOS</span>
-                <span className="text-zinc-200 font-medium">{project.image_count}</span>
+                <span className="text-zinc-500 block text-[9px] sm:text-[10px]">PHOTOS</span>
+                <span className="text-zinc-200 font-medium">{project.image_count ?? 0}</span>
               </div>
               <div>
-                <span className="text-zinc-500 block text-[10px]">SPARSE PTS</span>
+                <span className="text-zinc-500 block text-[9px] sm:text-[10px]">SPARSE PTS</span>
                 <span className="text-zinc-200 font-medium">{project.sparse_points_count ?? 0}</span>
               </div>
               <div>
-                <span className="text-zinc-500 block text-[10px]">MESH TRIS</span>
+                <span className="text-zinc-500 block text-[9px] sm:text-[10px]">MESH TRIS</span>
                 <span className="text-zinc-200 font-medium">{project.mesh_triangles_count ?? 0}</span>
               </div>
             </div>
@@ -116,8 +127,8 @@ export default function ProjectWorkspace() {
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+        {/* Tab Navigation (Horizontal scrolling on mobile) */}
+        <div className="flex items-center space-x-1.5 overflow-x-auto no-scrollbar pt-0.5 pb-1 text-nowrap">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
@@ -125,7 +136,7 @@ export default function ProjectWorkspace() {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors shrink-0 ${
                   active
                     ? 'bg-zinc-800 text-zinc-100 border border-zinc-700/60 shadow-sm'
                     : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60'
@@ -145,7 +156,7 @@ export default function ProjectWorkspace() {
       </div>
 
       {/* Outlet Sub-pages */}
-      <Outlet context={{ project, reloadProject: loadProject }} />
+      <Outlet context={{ project, reloadProject: () => loadProject(false) }} />
     </div>
   );
 }

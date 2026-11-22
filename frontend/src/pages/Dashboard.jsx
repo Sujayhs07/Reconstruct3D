@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   Camera,
   Cpu,
+  Zap,
   ChevronRight
 } from 'lucide-react';
 import { getProjects, getProjectStatsSummary } from '../api/client';
@@ -94,12 +95,12 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="p-8 max-w-[1300px] mx-auto space-y-8 select-none">
+    <div className="p-4 sm:p-6 lg:p-8 w-full space-y-6 sm:space-y-8 select-none">
       {/* 1. Hero Section matching Image 1 (Unslopped Senior Engineer Craft) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center pt-2">
-        <div className="lg:col-span-7 space-y-4">
-          <div className="space-y-2">
-            <h1 className="text-3xl sm:text-4xl font-bold text-zinc-100 tracking-tight leading-tight m-0">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 items-center pt-1">
+        <div className="lg:col-span-7 xl:col-span-6 space-y-3 sm:space-y-4">
+          <div className="space-y-1.5 sm:space-y-2">
+            <h1 className="text-2xl xs:text-3xl sm:text-4xl lg:text-5xl font-bold text-zinc-100 tracking-tight leading-tight m-0">
               Reconstruct3D
               <br />
               <span className="text-zinc-200">Engineering Studio</span>
@@ -121,13 +122,13 @@ export default function Dashboard() {
         </div>
 
         {/* Hero 3D Photogrammetry Point Cloud Viewer with Corner Marks */}
-        <div className="lg:col-span-5">
+        <div className="lg:col-span-5 xl:col-span-6">
           <TempleHeroScene />
         </div>
       </div>
 
       {/* 2. Stat Cards Row matching Image 1 */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {/* Card 1: Total Projects */}
         <div className="surface-card p-4 flex items-center justify-between">
           <div className="flex items-center space-x-3.5">
@@ -384,7 +385,7 @@ export default function Dashboard() {
       </div>
 
       {/* 4. Bottom Pipeline Banner matching Image 1 */}
-      <div className="surface-panel p-5 flex flex-col md:flex-row md:items-center justify-between gap-6 border border-white/[0.08]">
+      <div className="surface-panel p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-5 sm:gap-6 border border-white/[0.08]">
         <div className="space-y-1 max-w-xl">
           <span className="text-[10px] font-mono tracking-wider text-zinc-500 uppercase block">
             Powerful Pipeline
@@ -397,31 +398,31 @@ export default function Dashboard() {
           </p>
         </div>
 
-        {/* Stepper with icons */}
-        <div className="flex items-center space-x-3 text-xs">
-          <div className="flex items-center space-x-2 text-zinc-300">
+        {/* Stepper with icons (smoothly horizontally scrollable on mobile) */}
+        <div className="flex items-center space-x-2.5 sm:space-x-3 text-xs overflow-x-auto no-scrollbar py-1">
+          <div className="flex items-center space-x-2 text-zinc-300 shrink-0">
             <div className="w-7 h-7 rounded-md bg-zinc-800 border border-zinc-700/60 flex items-center justify-center text-zinc-300">
               <Camera className="w-3.5 h-3.5 text-blue-400" />
             </div>
-            <span className="hidden sm:inline font-medium text-xs">Upload Images</span>
+            <span className="font-medium text-xs">Upload</span>
           </div>
 
-          <ChevronRight className="w-3.5 h-3.5 text-zinc-600" />
+          <ChevronRight className="w-3.5 h-3.5 text-zinc-600 shrink-0" />
 
-          <div className="flex items-center space-x-2 text-zinc-300">
+          <div className="flex items-center space-x-2 text-zinc-300 shrink-0">
             <div className="w-7 h-7 rounded-md bg-zinc-800 border border-zinc-700/60 flex items-center justify-center text-zinc-300">
-              <Cpu className="w-3.5 h-3.5 text-indigo-400" />
+              <Zap className="w-3.5 h-3.5 text-blue-400" />
             </div>
-            <span className="hidden sm:inline font-medium text-xs">Process with COLMAP</span>
+            <span className="font-medium text-xs">AI 3D Engine</span>
           </div>
 
-          <ChevronRight className="w-3.5 h-3.5 text-zinc-600" />
+          <ChevronRight className="w-3.5 h-3.5 text-zinc-600 shrink-0" />
 
-          <div className="flex items-center space-x-2 text-zinc-300">
+          <div className="flex items-center space-x-2 text-zinc-300 shrink-0">
             <div className="w-7 h-7 rounded-md bg-zinc-800 border border-zinc-700/60 flex items-center justify-center text-zinc-300">
               <Box className="w-3.5 h-3.5 text-sky-400" />
             </div>
-            <span className="hidden sm:inline font-medium text-xs">View & Export 3D Mesh</span>
+            <span className="font-medium text-xs">3D Mesh</span>
           </div>
         </div>
 

@@ -1,16 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, useOutletContext, Link } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useOutletContext, Link } from 'react-router-dom';
 import {
   Cpu,
   Play,
   Square,
-  CheckCircle2,
-  AlertCircle,
-  Activity,
-  Layers,
   Box,
   Check,
-  Loader2
+  Loader2,
+  AlertCircle
 } from 'lucide-react';
 import {
   startReconstruction,
@@ -18,19 +15,19 @@ import {
   getReconstructionStatus,
   getReconstructionLogs
 } from '../api/client';
+import TerminalLogs from '../components/TerminalLogs';
 
 const PIPELINE_STAGES = [
-  { id: 'preprocessing', label: 'Plan & Validation', desc: 'Validating image resolution, overlap & camera intrinsics' },
-  { id: 'feature_extraction', label: 'SIFT Feature Extraction', desc: 'Detecting scale-invariant keypoints across all views' },
-  { id: 'feature_matching', label: 'Feature Matching & RANSAC', desc: 'Lowe\'s ratio test & epipolar geometric verification' },
-  { id: 'sparse_sfm', label: 'Incremental Sparse SfM', desc: 'COLMAP bundle adjustment & camera pose estimation' },
-  { id: 'dense_mvs', label: 'Multi-View Stereo (MVS)', desc: 'PatchMatch dense depth estimation & stereo fusion' },
-  { id: 'surface_reconstruction', label: 'Poisson Surface Mesh', desc: 'Open3D normal estimation & screened Poisson meshing' },
+  { id: 'preprocessing', label: 'Plan & Validation', desc: 'Validating image resolution, clarity & foreground mask' },
+  { id: 'feature_extraction', label: 'Feature Analysis', desc: 'Detecting scale-invariant keypoints across all views' },
+  { id: 'feature_matching', label: 'Feature Matching & SIFT', desc: 'Lowe\'s ratio test & geometric epipolar verification' },
+  { id: 'sparse_sfm', label: '3D Geometry Reconstruction', desc: 'AI Neural Mesh Synthesis & Silhouette Visual Hull' },
+  { id: 'dense_mvs', label: 'Texture & Color Mapping', desc: 'High-resolution surface color projection from original photos' },
+  { id: 'surface_reconstruction', label: 'Mesh Export & Finalization', desc: 'Watertight polygon mesh & GLB/OBJ/PLY packaging' },
 ];
 
 export default function ReconstructionStudio() {
   const { id } = useParams();
-  const navigate = useNavigate();
   const { project, reloadProject } = useOutletContext();
 
   const [statusData, setStatusData] = useState({
@@ -51,6 +48,7 @@ export default function ReconstructionStudio() {
   const [runMesh, setRunMesh] = useState(true);
   const [isStarting, setIsStarting] = useState(false);
   const [errorBanner, setErrorBanner] = useState(null);
+  const lastStatusRef = useRef(project?.status);
 
   useEffect(() => {
     let interval = null;
@@ -62,8 +60,9 @@ export default function ReconstructionStudio() {
         ]);
         setStatusData(stRes.data);
         setInitialLogs(logsRes.data);
-        if (stRes.data.status === 'completed' || stRes.data.status === 'failed') {
-          reloadProject();
+        if (stRes.data.status !== lastStatusRef.current) {
+          lastStatusRef.current = stRes.data.status;
+          if (reloadProject) reloadProject();
         }
       } catch (err) {
         console.error('Failed to poll status:', err);
@@ -109,36 +108,36 @@ export default function ReconstructionStudio() {
   const isCompleted = statusData.status === 'completed';
 
   const activityEvents = [
-    { role: 'COLMAP Engine', desc: 'Bundle adjustment and camera poses estimated', time: '1m ago' },
+    { role: '3D Engine', desc: '3D geometry and camera poses synthesized', time: '1m ago' },
     { role: 'SIFT Matcher', desc: 'Verified 4,120 matches across 12 image pairs', time: '2m ago' },
     { role: 'Open3D Worker', desc: 'Poisson surface mesh generated', time: '30s ago' },
     { role: 'Pipeline Manager', desc: 'Validating output PLY, OBJ, GLB files', time: '10s ago' },
   ];
 
   return (
-    <div className="space-y-6 select-none max-w-6xl mx-auto">
+    <div className="space-y-4 sm:space-y-6 select-none w-full">
       {/* 1. Header with macOS window control dots matching Image 5 */}
-      <div className="rounded-xl surface-panel p-4 flex items-center justify-between border border-white/[0.08]">
-        <div className="flex items-center space-x-3.5">
+      <div className="rounded-xl surface-panel p-3.5 sm:p-4 flex flex-col xs:flex-row xs:items-center justify-between gap-3 border border-white/[0.08]">
+        <div className="flex items-center space-x-2.5 sm:space-x-3.5">
           {/* macOS window dots */}
-          <div className="flex items-center space-x-1.5">
+          <div className="hidden xs:flex items-center space-x-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-red-500/80 inline-block" />
             <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/80 inline-block" />
             <span className="w-2.5 h-2.5 rounded-full bg-green-500/80 inline-block" />
           </div>
 
-          <div className="h-4 w-[1px] bg-zinc-800" />
+          <div className="hidden xs:block h-4 w-[1px] bg-zinc-800" />
 
           <div className="flex items-center space-x-2 text-xs">
             <span className="font-semibold text-zinc-100 tracking-tight">zeriQ</span>
             <span className="text-zinc-600">/</span>
-            <span className="text-zinc-400 font-mono">
+            <span className="text-zinc-400 font-mono truncate max-w-[150px] xs:max-w-xs">
               Project: {project?.name || 'zeriq-app'}
             </span>
           </div>
         </div>
 
-        <div className="flex items-center space-x-3 text-xs">
+        <div className="flex items-center justify-between xs:justify-end space-x-2 sm:space-x-3 text-xs">
           <div className="flex items-center space-x-1.5 px-2.5 py-1 rounded-md bg-zinc-900 border border-zinc-800 text-emerald-400 font-mono text-[11px]">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
             <span>Live</span>
@@ -148,10 +147,21 @@ export default function ReconstructionStudio() {
             <button
               onClick={handleStart}
               disabled={isStarting}
-              className="btn-primary px-3.5 py-1.5 text-xs flex items-center space-x-1.5"
+              className="btn-primary px-3.5 py-1.5 text-xs flex items-center space-x-1.5 shadow-lg shadow-blue-500/20"
             >
               {isStarting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5 fill-current" />}
-              <span>Start Pipeline</span>
+              <span>Generate 3D Model</span>
+            </button>
+          )}
+
+          {!isRunning && isCompleted && (
+            <button
+              onClick={handleStart}
+              disabled={isStarting}
+              className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium border border-zinc-700 flex items-center space-x-1.5 transition-colors"
+            >
+              {isStarting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+              <span>Re-generate</span>
             </button>
           )}
 
@@ -288,24 +298,8 @@ export default function ReconstructionStudio() {
       </div>
 
       {/* 3. Bottom Output Monospace Terminal matching Image 5 */}
-      <div className="rounded-xl surface-panel p-4 border border-white/[0.08] space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-mono font-semibold text-zinc-300 uppercase tracking-wider">
-            Output
-          </span>
-          <span className="text-[10px] font-mono text-zinc-500">
-            Real-time Console Stream
-          </span>
-        </div>
-
-        <div className="p-3.5 rounded-lg bg-zinc-950 border border-zinc-800/80 font-mono text-xs text-zinc-300 space-y-1.5 max-h-44 overflow-y-auto">
-          <div>&gt; Running test suite...</div>
-          <div className="text-emerald-400">&gt; All tests passed ✓</div>
-          <div>&gt; Changes validated</div>
-          <div>&gt; Initializing COLMAP 4.2.1 SIFT feature extraction...</div>
-          <div>&gt; Two-view epipolar geometry verified with RANSAC</div>
-          <div className="text-zinc-400">&gt; Ready for PR / 3D Inspection</div>
-        </div>
+      <div className="space-y-2">
+        <TerminalLogs projectId={id} initialLogs={initialLogs} />
       </div>
     </div>
   );

@@ -31,6 +31,10 @@ def list_models_and_pointclouds(project_id: str, db: Session = Depends(get_db)):
 
     return artifacts
 
+ALLOWED_MODEL_DOWNLOAD_EXTENSIONS = {
+    "ply", "obj", "glb", "gltf", "pcd", "xyz", "stl", "mtl", "png", "jpg", "jpeg", "txt", "log"
+}
+
 @router.get("/download/{filename}")
 def download_model_file(project_id: str, filename: str, db: Session = Depends(get_db)):
     project = db.query(Project).filter(Project.id == project_id).first()
@@ -38,14 +42,18 @@ def download_model_file(project_id: str, filename: str, db: Session = Depends(ge
         raise HTTPException(status_code=404, detail="Project not found")
 
     safe_filename = os.path.basename(filename)
-    if not safe_filename or safe_filename != filename:
+    if not safe_filename or safe_filename != filename or safe_filename in {".", ".."}:
         raise HTTPException(status_code=400, detail="Invalid filename.")
+
+    ext = safe_filename.rsplit(".", 1)[-1].lower() if "." in safe_filename else ""
+    if ext not in ALLOWED_MODEL_DOWNLOAD_EXTENSIONS:
+        raise HTTPException(status_code=400, detail="File extension not permitted for download.")
 
     dirs = init_project_directories(project_id)
     # Search in exports, meshes, point_clouds
     for search_dir in [dirs["exports"], dirs["meshes"], dirs["point_clouds"]]:
-        candidate = search_dir / safe_filename
-        if candidate.exists():
+        candidate = (search_dir / safe_filename).resolve()
+        if candidate.is_file() and candidate.parent == search_dir.resolve():
             return FileResponse(
                 path=str(candidate),
                 filename=safe_filename,

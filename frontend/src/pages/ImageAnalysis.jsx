@@ -45,12 +45,12 @@ export default function ImageAnalysis() {
   }
 
   return (
-    <div className="space-y-6 select-none">
+    <div className="space-y-4 sm:space-y-6 select-none">
       {/* Overview Cards Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="surface-card p-4 space-y-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="surface-card p-3.5 sm:p-4 space-y-1">
           <span className="text-[10px] text-zinc-500 font-mono uppercase tracking-wider">Quality Assessment</span>
-          <div className="text-xl font-bold font-mono">
+          <div className="text-lg sm:text-xl font-bold font-mono">
             {analysis?.quality_rating === 'Excellent' && <span className="text-emerald-400">Excellent</span>}
             {analysis?.quality_rating === 'Good' && <span className="text-blue-400">Good</span>}
             {analysis?.quality_rating === 'Fair' && <span className="text-amber-400">Fair</span>}
@@ -59,9 +59,9 @@ export default function ImageAnalysis() {
           <span className="text-[11px] text-zinc-400">{analysis?.total_images} photographs assessed</span>
         </div>
 
-        <div className="surface-card p-4 space-y-1">
+        <div className="surface-card p-3.5 sm:p-4 space-y-1">
           <span className="text-[10px] text-zinc-500 font-mono uppercase tracking-wider">Avg Laplacian Sharpness</span>
-          <div className="text-xl font-bold font-mono text-zinc-100">{analysis?.avg_sharpness}</div>
+          <div className="text-lg sm:text-xl font-bold font-mono text-zinc-100">{analysis?.avg_sharpness}</div>
           <span className="text-[11px] text-zinc-400">
             {analysis?.blurry_count > 0 ? (
               <span className="text-amber-400">{analysis.blurry_count} blurry images flagged</span>
@@ -71,9 +71,9 @@ export default function ImageAnalysis() {
           </span>
         </div>
 
-        <div className="surface-card p-4 space-y-1">
+        <div className="surface-card p-3.5 sm:p-4 space-y-1">
           <span className="text-[10px] text-zinc-500 font-mono uppercase tracking-wider">Avg Illumination</span>
-          <div className="text-xl font-bold font-mono text-zinc-100">{analysis?.avg_brightness}</div>
+          <div className="text-lg sm:text-xl font-bold font-mono text-zinc-100">{analysis?.avg_brightness}</div>
           <span className="text-[11px] text-zinc-400">
             {analysis?.dark_count > 0 ? (
               <span className="text-amber-400">{analysis.dark_count} dark images flagged</span>
@@ -83,9 +83,9 @@ export default function ImageAnalysis() {
           </span>
         </div>
 
-        <div className="surface-card p-4 space-y-1">
+        <div className="surface-card p-3.5 sm:p-4 space-y-1">
           <span className="text-[10px] text-zinc-500 font-mono uppercase tracking-wider">Photogrammetry Readiness</span>
-          <div className="text-xl font-bold font-mono">
+          <div className="text-lg sm:text-xl font-bold font-mono">
             {analysis?.is_suitable_for_sfm ? (
               <span className="text-emerald-400 flex items-center space-x-1">
                 <CheckCircle2 className="w-4 h-4 inline mr-1" />
@@ -108,17 +108,17 @@ export default function ImageAnalysis() {
       <FeatureMatchViewer projectId={id} images={images} />
 
       {/* Image Quality Breakdown Table */}
-      <div className="rounded-xl surface-panel p-5 border border-white/[0.08] space-y-4">
-        <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+      <div className="rounded-xl surface-panel p-4 sm:p-5 border border-white/[0.08] space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-zinc-800 pb-3">
           <h3 className="text-sm font-semibold text-zinc-100 flex items-center space-x-2 m-0 tracking-tight">
             <BarChart2 className="w-4 h-4 text-zinc-400" />
             <span>OpenCV Metric Details Per Photograph</span>
           </h3>
-          <span className="text-[11px] font-mono text-zinc-500">Laplacian Variance · Mean Contrast</span>
+          <span className="text-[10px] sm:text-[11px] font-mono text-zinc-500">Laplacian Variance · Mean Contrast</span>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs font-mono text-zinc-300">
+          <table className="w-full text-left text-xs font-mono text-zinc-300 min-w-[600px]">
             <thead>
               <tr className="border-b border-zinc-800 text-zinc-500 text-[11px] bg-zinc-950/60">
                 <th className="py-2.5 px-4 font-medium">Image</th>

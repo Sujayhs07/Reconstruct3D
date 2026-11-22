@@ -1,16 +1,23 @@
 import os
+import re
 import hashlib
 from pathlib import Path
 from typing import Optional
 from fastapi import HTTPException
 from backend.config import settings
 
+SAFE_PROJECT_ID_REGEX = re.compile(r"^[a-zA-Z0-9_-]+$")
+
 def get_project_dir(project_id: str) -> Path:
-    # Prevent path traversal
-    safe_id = os.path.basename(project_id)
-    if not safe_id or safe_id != project_id:
+    # Prevent path traversal and special characters
+    if not project_id or not SAFE_PROJECT_ID_REGEX.match(project_id) or project_id in {".", ".."}:
         raise HTTPException(status_code=400, detail="Invalid project ID")
-    return settings.PROJECTS_DIR / safe_id
+    
+    target = (settings.PROJECTS_DIR / project_id).resolve()
+    base = settings.PROJECTS_DIR.resolve()
+    if target.parent != base:
+        raise HTTPException(status_code=400, detail="Invalid project ID traversal")
+    return target
 
 def init_project_directories(project_id: str) -> dict[str, Path]:
     base = get_project_dir(project_id)

@@ -53,7 +53,7 @@ export default function ModelViewerPage() {
   const isPointCloud = selectedArtifact?.artifact_type?.includes('points') || selectedArtifact?.artifact_type?.includes('pcd');
 
   return (
-    <div className="space-y-6 select-none">
+    <div className="space-y-4 sm:space-y-6 select-none">
       {/* 3D Asset Selector Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl surface-panel p-3 border border-white/[0.08]">
         <div className="flex flex-wrap items-center gap-1.5">
@@ -66,14 +66,14 @@ export default function ModelViewerPage() {
               <button
                 key={art.id}
                 onClick={() => setSelectedArtifact(art)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-colors flex items-center space-x-2 ${
+                className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-mono transition-colors flex items-center space-x-1.5 sm:space-x-2 ${
                   isSelected
                     ? 'bg-zinc-800 text-zinc-100 border border-zinc-700 shadow-sm'
                     : 'bg-zinc-950/60 text-zinc-400 hover:bg-zinc-900 border border-zinc-800'
                 }`}
               >
-                <span>{art.filename}</span>
-                <span className={`text-[10px] uppercase px-1 py-0.2 rounded ${isSelected ? 'bg-zinc-700 text-zinc-200' : 'bg-zinc-900 text-zinc-500'}`}>
+                <span className="truncate max-w-[120px] xs:max-w-none">{art.filename}</span>
+                <span className={`text-[10px] uppercase px-1 py-0.2 rounded shrink-0 ${isSelected ? 'bg-zinc-700 text-zinc-200' : 'bg-zinc-900 text-zinc-500'}`}>
                   {art.format}
                 </span>
               </button>
@@ -85,7 +85,7 @@ export default function ModelViewerPage() {
           <a
             href={getModelDownloadUrl(id, selectedArtifact.filename)}
             download
-            className="btn-primary flex items-center space-x-1.5 px-3 py-1.5 text-xs"
+            className="btn-primary flex items-center justify-center space-x-1.5 px-3 py-1.5 text-xs w-full sm:w-auto"
           >
             <Download className="w-3.5 h-3.5" />
             <span>Download {selectedArtifact.format.toUpperCase()}</span>

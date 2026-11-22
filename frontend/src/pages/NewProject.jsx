@@ -35,7 +35,7 @@ export default function NewProject() {
   };
 
   return (
-    <div className="p-8 max-w-xl mx-auto space-y-6 select-none">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-xl mx-auto space-y-4 sm:space-y-6 select-none">
       <button
         onClick={() => navigate('/')}
         className="inline-flex items-center space-x-1.5 text-xs text-zinc-400 hover:text-white transition-colors"
@@ -44,7 +44,7 @@ export default function NewProject() {
         <span>Back to Dashboard</span>
       </button>
 
-      <div className="rounded-xl surface-panel p-6 space-y-5 border border-white/[0.08]">
+      <div className="rounded-xl surface-panel p-4 sm:p-6 space-y-4 sm:space-y-5 border border-white/[0.08]">
         <div className="border-b border-zinc-800 pb-4">
           <h1 className="text-base font-bold text-zinc-100 flex items-center space-x-2 m-0 tracking-tight">
             <FolderPlus className="w-4 h-4 text-blue-400" />

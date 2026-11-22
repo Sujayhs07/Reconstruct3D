@@ -108,7 +108,7 @@ export default function DropzoneUpload({ projectId, onImagesUploaded, onClose })
   };
 
   return (
-    <div className="w-full max-w-xl mx-auto rounded-xl bg-[#111114] border border-white/[0.08] p-6 shadow-xl text-zinc-100 select-none">
+    <div className="w-full max-w-xl mx-auto rounded-xl bg-[#111114] border border-white/[0.08] p-4 sm:p-6 shadow-xl text-zinc-100 select-none">
       {/* Modal Header */}
       <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
         <h3 className="text-sm font-semibold text-zinc-100 tracking-tight">Upload files</h3>
@@ -123,10 +123,10 @@ export default function DropzoneUpload({ projectId, onImagesUploaded, onClose })
       </div>
 
       {/* Tabs matching Image 3: Drive | Your device | Embed link */}
-      <div className="flex items-center space-x-6 pt-3 pb-2 border-b border-zinc-800 text-xs font-medium">
+      <div className="flex items-center space-x-5 sm:space-x-6 pt-3 pb-2 border-b border-zinc-800 text-xs font-medium overflow-x-auto no-scrollbar">
         <button
           onClick={() => setActiveTab('drive')}
-          className={`pb-2 transition-colors ${
+          className={`pb-2 transition-colors shrink-0 ${
             activeTab === 'drive'
               ? 'text-zinc-100 border-b-2 border-zinc-100 font-semibold'
               : 'text-zinc-400 hover:text-zinc-200'
@@ -136,7 +136,7 @@ export default function DropzoneUpload({ projectId, onImagesUploaded, onClose })
         </button>
         <button
           onClick={() => setActiveTab('device')}
-          className={`pb-2 transition-colors ${
+          className={`pb-2 transition-colors shrink-0 ${
             activeTab === 'device'
               ? 'text-zinc-100 border-b-2 border-zinc-100 font-semibold'
               : 'text-zinc-400 hover:text-zinc-200'
@@ -146,7 +146,7 @@ export default function DropzoneUpload({ projectId, onImagesUploaded, onClose })
         </button>
         <button
           onClick={() => setActiveTab('embed')}
-          className={`pb-2 transition-colors ${
+          className={`pb-2 transition-colors shrink-0 ${
             activeTab === 'embed'
               ? 'text-zinc-100 border-b-2 border-zinc-100 font-semibold'
               : 'text-zinc-400 hover:text-zinc-200'
@@ -157,13 +157,13 @@ export default function DropzoneUpload({ projectId, onImagesUploaded, onClose })
       </div>
 
       {/* Dropzone Area matching Image 3 */}
-      <div className="py-4">
+      <div className="py-3 sm:py-4">
         <div
           onDragOver={onDragOver}
           onDragLeave={onDragLeave}
           onDrop={onDrop}
           onClick={() => fileInputRef.current?.click()}
-          className={`border border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
+          className={`border border-dashed rounded-xl p-5 sm:p-8 text-center cursor-pointer transition-colors ${
             dragActive
               ? 'border-blue-500 bg-blue-950/20'
               : 'border-zinc-800 hover:border-zinc-700 bg-zinc-950/60'
@@ -180,7 +180,7 @@ export default function DropzoneUpload({ projectId, onImagesUploaded, onClose })
             }}
           />
 
-          <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto mb-2.5 text-zinc-400">
+          <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto mb-2 text-zinc-400">
             <UploadCloud className="w-5 h-5 text-blue-400" />
           </div>
 
@@ -212,21 +212,21 @@ export default function DropzoneUpload({ projectId, onImagesUploaded, onClose })
               key={item.id}
               className="rounded-lg p-2.5 bg-zinc-900/80 border border-zinc-800 flex items-center justify-between text-xs"
             >
-              <div className="flex items-center space-x-3 min-w-0">
+              <div className="flex items-center space-x-2.5 sm:space-x-3 min-w-0">
                 <div className="w-8 h-8 rounded bg-zinc-800 border border-zinc-700/60 flex items-center justify-center text-zinc-400 shrink-0">
                   <FileImage className="w-4 h-4 text-zinc-300" />
                 </div>
                 <div className="min-w-0">
-                  <div className="font-medium text-zinc-200 truncate max-w-[240px]">
+                  <div className="font-medium text-zinc-200 truncate max-w-[130px] xs:max-w-[180px] sm:max-w-[240px]">
                     {item.file.name}
                   </div>
-                  <div className="text-[11px] font-mono text-zinc-500">
+                  <div className="text-[10px] sm:text-[11px] font-mono text-zinc-500">
                     {item.sizeStr} • {isUploading ? `${uploadProgress}%` : 'Ready'}
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-2 shrink-0">
                 {isUploading ? (
                   <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
                 ) : (
@@ -253,7 +253,7 @@ export default function DropzoneUpload({ projectId, onImagesUploaded, onClose })
             type="button"
             onClick={onClose}
             disabled={isUploading}
-            className="btn-secondary px-4 py-1.5 text-xs"
+            className="btn-secondary px-3.5 sm:px-4 py-1.5 text-xs"
           >
             Cancel
           </button>
@@ -263,7 +263,7 @@ export default function DropzoneUpload({ projectId, onImagesUploaded, onClose })
           type="button"
           onClick={handleUpload}
           disabled={selectedFiles.length === 0 || isUploading}
-          className="btn-primary px-4 py-1.5 text-xs disabled:opacity-50 flex items-center space-x-2"
+          className="btn-primary px-3.5 sm:px-4 py-1.5 text-xs disabled:opacity-50 flex items-center space-x-2"
         >
           {isUploading ? (
             <>

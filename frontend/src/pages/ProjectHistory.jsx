@@ -51,10 +51,10 @@ export default function ProjectHistory() {
   );
 
   return (
-    <div className="p-8 max-w-[1300px] mx-auto space-y-6 select-none">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-5">
+    <div className="p-4 sm:p-6 lg:p-8 w-full space-y-4 sm:space-y-6 select-none">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b border-zinc-800 pb-4">
         <div>
-          <h1 className="text-xl font-bold text-zinc-100 flex items-center space-x-2 m-0 tracking-tight">
+          <h1 className="text-lg sm:text-xl font-bold text-zinc-100 flex items-center space-x-2 m-0 tracking-tight">
             <FolderArchive className="w-5 h-5 text-zinc-400" />
             <span>Project History</span>
           </h1>
@@ -64,7 +64,7 @@ export default function ProjectHistory() {
         </div>
 
         {/* Search Input */}
-        <div className="relative w-full md:w-64">
+        <div className="relative w-full sm:w-64">
           <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-2.5" />
           <input
             type="text"
@@ -83,75 +83,143 @@ export default function ProjectHistory() {
           No matching projects found.
         </div>
       ) : (
-        <div className="rounded-xl surface-panel border border-white/[0.08] overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs font-mono text-zinc-300">
-              <thead>
-                <tr className="border-b border-zinc-800 text-zinc-500 text-[11px] bg-zinc-950/60">
-                  <th className="py-3 px-4 font-medium">Project Name</th>
-                  <th className="py-3 px-4 font-medium">Status</th>
-                  <th className="py-3 px-4 font-medium">Photos</th>
-                  <th className="py-3 px-4 font-medium">Sparse Points</th>
-                  <th className="py-3 px-4 font-medium">Dense Points</th>
-                  <th className="py-3 px-4 font-medium">Mesh Triangles</th>
-                  <th className="py-3 px-4 font-medium">Created Date</th>
-                  <th className="py-3 px-4 text-right font-medium">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-800/60">
-                {filtered.map((proj) => (
-                  <tr
-                    key={proj.id}
-                    onClick={() => navigate(`/projects/${proj.id}/reconstruct`)}
-                    className="hover:bg-zinc-900/40 cursor-pointer transition-colors"
-                  >
-                    <td className="py-3.5 px-4">
-                      <div className="font-semibold text-zinc-100 font-sans">{proj.name}</div>
-                      {proj.description && (
-                        <div className="text-[11px] text-zinc-500 truncate max-w-xs">{proj.description}</div>
-                      )}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono ${
-                        proj.status === 'completed'
-                          ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/60'
-                          : proj.status === 'failed'
-                          ? 'bg-rose-950/60 text-rose-300 border border-rose-800/60'
-                          : 'bg-zinc-800 text-zinc-300 border border-zinc-700/60'
-                      }`}>
-                        {proj.status.toUpperCase()}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 font-semibold text-zinc-200">{proj.image_count ?? 0}</td>
-                    <td className="py-3.5 px-4 text-zinc-300">{(proj.sparse_points_count ?? 0).toLocaleString()}</td>
-                    <td className="py-3.5 px-4 text-blue-400">{(proj.dense_points_count ?? 0).toLocaleString()}</td>
-                    <td className="py-3.5 px-4 text-zinc-200">{(proj.mesh_triangles_count ?? 0).toLocaleString()}</td>
-                    <td className="py-3.5 px-4 text-zinc-500 text-[11px]">
-                      {proj.created_at ? new Date(proj.created_at).toLocaleDateString() : '11/17/2026'}
-                    </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end space-x-2" onClick={(e) => e.stopPropagation()}>
-                        <Link
-                          to={`/projects/${proj.id}/reconstruct`}
-                          className="btn-secondary px-2.5 py-1 text-xs"
-                        >
-                          Open
-                        </Link>
-                        <button
-                          onClick={(e) => handleDelete(proj.id, e)}
-                          className="p-1 rounded hover:bg-rose-950/50 text-zinc-500 hover:text-rose-400 transition-colors"
-                          title="Delete Project"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <>
+          {/* Mobile Card List (< md) */}
+          <div className="md:hidden space-y-3">
+            {filtered.map((proj) => (
+              <div
+                key={proj.id}
+                onClick={() => navigate(`/projects/${proj.id}/reconstruct`)}
+                className="surface-card p-4 space-y-3 cursor-pointer"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <h3 className="font-semibold text-sm text-zinc-100 font-sans">{proj.name}</h3>
+                    {proj.description && (
+                      <p className="text-[11px] text-zinc-400 mt-0.5 line-clamp-1">{proj.description}</p>
+                    )}
+                  </div>
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono shrink-0 ${
+                    proj.status === 'completed'
+                      ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/60'
+                      : proj.status === 'failed'
+                      ? 'bg-rose-950/60 text-rose-300 border border-rose-800/60'
+                      : 'bg-zinc-800 text-zinc-300 border border-zinc-700/60'
+                  }`}>
+                    {proj.status.toUpperCase()}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 py-2 border-y border-zinc-800/60 text-[10px] font-mono text-zinc-400">
+                  <div>
+                    <span className="block text-zinc-500">PHOTOS</span>
+                    <span className="text-zinc-200 font-semibold">{proj.image_count ?? 0}</span>
+                  </div>
+                  <div>
+                    <span className="block text-zinc-500">SPARSE PTS</span>
+                    <span className="text-zinc-200 font-semibold">{proj.sparse_points_count ?? 0}</span>
+                  </div>
+                  <div>
+                    <span className="block text-zinc-500">MESH TRIS</span>
+                    <span className="text-zinc-200 font-semibold">{proj.mesh_triangles_count ?? 0}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-xs pt-1">
+                  <span className="text-zinc-500 font-mono text-[10px]">
+                    {proj.created_at ? new Date(proj.created_at).toLocaleDateString() : '11/17/2026'}
+                  </span>
+                  <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
+                    <Link
+                      to={`/projects/${proj.id}/reconstruct`}
+                      className="btn-secondary px-3 py-1 text-xs"
+                    >
+                      Open
+                    </Link>
+                    <button
+                      onClick={(e) => handleDelete(proj.id, e)}
+                      className="p-1.5 rounded hover:bg-rose-950/50 text-zinc-500 hover:text-rose-400 transition-colors"
+                      title="Delete Project"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
+
+          {/* Desktop Table (>= md) */}
+          <div className="hidden md:block rounded-xl surface-panel border border-white/[0.08] overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs font-mono text-zinc-300">
+                <thead>
+                  <tr className="border-b border-zinc-800 text-zinc-500 text-[11px] bg-zinc-950/60">
+                    <th className="py-3 px-4 font-medium">Project Name</th>
+                    <th className="py-3 px-4 font-medium">Status</th>
+                    <th className="py-3 px-4 font-medium">Photos</th>
+                    <th className="py-3 px-4 font-medium">Sparse Points</th>
+                    <th className="py-3 px-4 font-medium">Dense Points</th>
+                    <th className="py-3 px-4 font-medium">Mesh Triangles</th>
+                    <th className="py-3 px-4 font-medium">Created Date</th>
+                    <th className="py-3 px-4 text-right font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800/60">
+                  {filtered.map((proj) => (
+                    <tr
+                      key={proj.id}
+                      onClick={() => navigate(`/projects/${proj.id}/reconstruct`)}
+                      className="hover:bg-zinc-900/40 cursor-pointer transition-colors"
+                    >
+                      <td className="py-3.5 px-4">
+                        <div className="font-semibold text-zinc-100 font-sans">{proj.name}</div>
+                        {proj.description && (
+                          <div className="text-[11px] text-zinc-500 truncate max-w-xs">{proj.description}</div>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono ${
+                          proj.status === 'completed'
+                            ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-800/60'
+                            : proj.status === 'failed'
+                            ? 'bg-rose-950/60 text-rose-300 border border-rose-800/60'
+                            : 'bg-zinc-800 text-zinc-300 border border-zinc-700/60'
+                        }`}>
+                          {proj.status.toUpperCase()}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 font-semibold text-zinc-200">{proj.image_count ?? 0}</td>
+                      <td className="py-3.5 px-4 text-zinc-300">{(proj.sparse_points_count ?? 0).toLocaleString()}</td>
+                      <td className="py-3.5 px-4 text-blue-400">{(proj.dense_points_count ?? 0).toLocaleString()}</td>
+                      <td className="py-3.5 px-4 text-zinc-200">{(proj.mesh_triangles_count ?? 0).toLocaleString()}</td>
+                      <td className="py-3.5 px-4 text-zinc-500 text-[11px]">
+                        {proj.created_at ? new Date(proj.created_at).toLocaleDateString() : '11/17/2026'}
+                      </td>
+                      <td className="py-3.5 px-4 text-right">
+                        <div className="flex items-center justify-end space-x-2" onClick={(e) => e.stopPropagation()}>
+                          <Link
+                            to={`/projects/${proj.id}/reconstruct`}
+                            className="btn-secondary px-2.5 py-1 text-xs"
+                          >
+                            Open
+                          </Link>
+                          <button
+                            onClick={(e) => handleDelete(proj.id, e)}
+                            className="p-1 rounded hover:bg-rose-950/50 text-zinc-500 hover:text-rose-400 transition-colors"
+                            title="Delete Project"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
     </div>
   );

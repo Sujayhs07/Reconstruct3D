@@ -31,7 +31,20 @@ function PLYModel({ url, isPointCloud, pointSize, wireframe, color, onLoaded }) 
       url,
       (geo) => {
         if (!active) return;
-        geo.computeVertexNormals();
+        // WebGL requires Float32Array for position and normal attribute buffers
+        if (geo.attributes.position && !(geo.attributes.position.array instanceof Float32Array)) {
+          geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(geo.attributes.position.array), geo.attributes.position.itemSize));
+        }
+        if (geo.attributes.normal && !(geo.attributes.normal.array instanceof Float32Array)) {
+          geo.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(geo.attributes.normal.array), geo.attributes.normal.itemSize));
+        }
+        if (!geo.attributes.normal && !isPointCloud && geo.attributes.position && geo.attributes.position.count >= 3) {
+          try {
+            geo.computeVertexNormals();
+          } catch (e) {
+            console.warn('computeVertexNormals skipped:', e);
+          }
+        }
         geo.center();
         setGeometry(geo);
         if (onLoaded) {
@@ -115,7 +128,17 @@ function GLBModel({ url, wireframe, onLoaded }) {
     return () => {
       active = false;
     };
-  }, [url, wireframe]);
+  }, [url]);
+
+  useEffect(() => {
+    if (scene) {
+      scene.traverse((child) => {
+        if (child.isMesh && child.material) {
+          child.material.wireframe = wireframe;
+        }
+      });
+    }
+  }, [scene, wireframe]);
 
   if (!scene) return null;
   return <primitive object={scene} />;
@@ -188,8 +211,8 @@ export default function Viewer3D({
   const [wireframe, setWireframe] = useState(true);
   const [showGrid, setShowGrid] = useState(true);
   const [showAxes, setShowAxes] = useState(true);
-  const [showProperties, setShowProperties] = useState(true);
-  const [showBrowser, setShowBrowser] = useState(true);
+  const [showProperties, setShowProperties] = useState(typeof window !== 'undefined' ? window.innerWidth >= 1024 : false);
+  const [showBrowser, setShowBrowser] = useState(typeof window !== 'undefined' ? window.innerWidth >= 1280 : false);
   const [pointSize, setPointSize] = useState(0.025);
   const [lightIntensity, setLightIntensity] = useState(1.3);
   const [modelColor, setModelColor] = useState('#38bdf8');
@@ -229,28 +252,39 @@ export default function Viewer3D({
     <div
       ref={containerRef}
       className={`relative w-full rounded-xl overflow-hidden border border-white/[0.08] bg-[#09090b] flex flex-col shadow-xl select-none ${
-        isFullscreen ? 'h-screen w-screen rounded-none border-none' : 'h-[660px]'
+        isFullscreen ? 'h-screen w-screen rounded-none border-none' : 'h-[480px] sm:h-[580px] md:h-[660px]'
       }`}
     >
       {/* 1. Top CAD Navigation Ribbon matching Image 4 */}
-      <div className="absolute top-0 left-0 right-0 z-20 h-11 bg-[#0f0f13]/90 backdrop-blur-md border-b border-white/[0.08] px-4 flex items-center justify-between text-xs text-zinc-300">
-        <div className="flex items-center space-x-3">
-          <div className="flex items-center space-x-2 font-semibold text-zinc-100 tracking-tight">
+      <div className="absolute top-0 left-0 right-0 z-20 h-11 bg-[#0f0f13]/90 backdrop-blur-md border-b border-white/[0.08] px-2.5 sm:px-4 flex items-center justify-between text-xs text-zinc-300">
+        <div className="flex items-center space-x-2 sm:space-x-3 min-w-0">
+          <div className="flex items-center space-x-1.5 sm:space-x-2 font-semibold text-zinc-100 tracking-tight shrink-0">
             <span className="w-2 h-2 rounded-full bg-blue-400" />
-            <span>3D DESIGN COCKPIT</span>
+            <span className="hidden xs:inline">3D DESIGN COCKPIT</span>
+            <span className="xs:hidden">3D</span>
           </div>
-          <span className="text-zinc-600">|</span>
-          <span className="font-mono text-zinc-400 text-[11px] truncate max-w-[200px]">
-            Project: {modelName}
+          <span className="text-zinc-600 hidden xs:inline">|</span>
+          <span className="font-mono text-zinc-400 text-[10px] sm:text-[11px] truncate max-w-[100px] xs:max-w-[150px] sm:max-w-[200px]">
+            {modelName}
           </span>
         </div>
 
         {/* View Mode Icons */}
-        <div className="flex items-center space-x-1">
+        <div className="flex items-center space-x-1 shrink-0">
+          <button
+            onClick={() => setShowBrowser(!showBrowser)}
+            title="Toggle Model Browser"
+            className={`p-1.5 rounded transition-colors ${
+              showBrowser ? 'bg-zinc-800 text-blue-400' : 'text-zinc-400 hover:text-white'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+          </button>
+
           <button
             onClick={() => setWireframe(!wireframe)}
             title="Wireframe Mode"
-            className={`px-2 py-0.5 rounded text-[11px] font-mono transition-colors ${
+            className={`px-1.5 sm:px-2 py-0.5 rounded text-[10px] sm:text-[11px] font-mono transition-colors ${
               wireframe ? 'bg-zinc-800 text-blue-400 font-semibold' : 'text-zinc-400 hover:text-white'
             }`}
           >
@@ -260,7 +294,7 @@ export default function Viewer3D({
           <button
             onClick={() => setShowGrid(!showGrid)}
             title="Toggle Grid"
-            className={`p-1.5 rounded transition-colors ${
+            className={`p-1.5 rounded transition-colors hidden xs:inline-flex ${
               showGrid ? 'bg-zinc-800 text-blue-400' : 'text-zinc-400 hover:text-white'
             }`}
           >
@@ -268,13 +302,13 @@ export default function Viewer3D({
           </button>
 
           <button
-            onClick={() => setShowAxes(!showAxes)}
-            title="Toggle Axes"
+            onClick={() => setShowProperties(!showProperties)}
+            title="Toggle Properties Panel"
             className={`p-1.5 rounded transition-colors ${
-              showAxes ? 'bg-zinc-800 text-blue-400' : 'text-zinc-400 hover:text-white'
+              showProperties ? 'bg-zinc-800 text-blue-400' : 'text-zinc-400 hover:text-white'
             }`}
           >
-            <Compass className="w-3.5 h-3.5" />
+            <Focus className="w-3.5 h-3.5" />
           </button>
 
           <button
@@ -297,7 +331,7 @@ export default function Viewer3D({
 
       {/* 2. Left Model Browser Panel matching Image 4 */}
       {showBrowser && (
-        <div className="absolute top-14 left-3 z-10 w-52 rounded-lg bg-[#111115]/95 backdrop-blur-md border border-white/[0.08] p-3 text-xs space-y-2.5 shadow-xl">
+        <div className="absolute top-13 left-2 sm:left-3 z-10 w-52 max-w-[85vw] rounded-lg bg-[#111115]/95 backdrop-blur-md border border-white/[0.08] p-3 text-xs space-y-2.5 shadow-xl">
           <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
             <span className="font-semibold text-[10px] font-mono tracking-wider text-zinc-400 uppercase">
               MODEL BROWSER
@@ -349,7 +383,7 @@ export default function Viewer3D({
 
       {/* 4. Right Floating Properties Panel matching Image 4 */}
       {showProperties && (
-        <div className="absolute top-14 right-3 z-10 w-60 rounded-lg bg-[#111115]/95 backdrop-blur-md border border-white/[0.08] p-3.5 text-xs space-y-3.5 shadow-xl">
+        <div className="absolute top-13 right-2 sm:right-3 z-10 w-60 max-w-[85vw] rounded-lg bg-[#111115]/95 backdrop-blur-md border border-white/[0.08] p-3 sm:p-3.5 text-xs space-y-3.5 shadow-xl">
           <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
             <span className="font-semibold text-[10px] font-mono tracking-wider text-zinc-400 uppercase">
               PROPERTIES
@@ -463,17 +497,17 @@ export default function Viewer3D({
       </div>
 
       {/* 6. Bottom Viewport HUD Bar matching Image 4 */}
-      <div className="h-9 bg-[#0d0d10] border-t border-white/[0.08] px-4 flex items-center justify-between text-xs text-zinc-400 font-mono select-none">
+      <div className="h-9 bg-[#0d0d10] border-t border-white/[0.08] px-2.5 sm:px-4 flex items-center justify-between text-xs text-zinc-400 font-mono select-none overflow-x-auto no-scrollbar">
         {/* Left: View Dropdown */}
-        <div className="flex items-center space-x-2">
-          <div className="flex items-center space-x-1 px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[11px] text-zinc-300">
+        <div className="flex items-center space-x-1.5 shrink-0">
+          <div className="flex items-center space-x-1 px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-[10px] sm:text-[11px] text-zinc-300">
             <span>View: {viewAngle.toUpperCase()}</span>
             <ChevronDown className="w-3 h-3 text-zinc-500" />
           </div>
         </div>
 
         {/* Center: Tool Icons (Orbit, Pan, Zoom, Focus, Measure) */}
-        <div className="flex items-center space-x-3 text-zinc-400">
+        <div className="hidden xs:flex items-center space-x-2.5 sm:space-x-3 text-zinc-400 shrink-0">
           <button onClick={() => handleResetCamera('perspective')} className="hover:text-zinc-200 transition-colors" title="Orbit">
             <RotateCcw className="w-3.5 h-3.5" />
           </button>
@@ -486,19 +520,19 @@ export default function Viewer3D({
           <button onClick={() => handleResetCamera('perspective')} className="hover:text-zinc-200 transition-colors" title="Focus">
             <Focus className="w-3.5 h-3.5" />
           </button>
-          <button className="hover:text-zinc-200 transition-colors" title="Measure">
+          <button className="hover:text-zinc-200 transition-colors hidden sm:inline" title="Measure">
             <Ruler className="w-3.5 h-3.5" />
           </button>
         </div>
 
         {/* Right Telemetry matching Image 4 */}
-        <div className="flex items-center space-x-3 text-[11px]">
-          <span>Units: mm</span>
-          <span className="text-zinc-700">|</span>
-          <span>Scale: 1:1</span>
-          <span className="text-zinc-700">|</span>
-          <span className="text-zinc-200 font-semibold">
-            Triangles: {(meshStats.faceCount || stats.triangle_count || 24851382).toLocaleString()}
+        <div className="flex items-center space-x-2 sm:space-x-3 text-[10px] sm:text-[11px] shrink-0">
+          <span className="hidden md:inline">Units: mm</span>
+          <span className="text-zinc-700 hidden md:inline">|</span>
+          <span className="hidden sm:inline">Scale: 1:1</span>
+          <span className="text-zinc-700 hidden sm:inline">|</span>
+          <span className="text-zinc-200 font-semibold truncate">
+            Tris: {(meshStats.faceCount || stats.triangle_count || 24851382).toLocaleString()}
           </span>
         </div>
       </div>

@@ -21,20 +21,20 @@ export default function ImageAcquisition() {
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const loadImages = async () => {
+  const loadImages = async (isInitial = false) => {
     try {
-      setLoading(true);
+      if (isInitial) setLoading(true);
       const res = await getProjectImages(id);
       setImages(res.data);
     } catch (err) {
       console.error('Failed to load project images:', err);
     } finally {
-      setLoading(false);
+      if (isInitial) setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadImages();
+    loadImages(true);
   }, [id]);
 
   const handleDeleteImage = async (imgId) => {
@@ -97,7 +97,7 @@ export default function ImageAcquisition() {
               <span>Project Photographs ({images.length})</span>
             </h3>
             <p className="text-xs text-zinc-400 mt-0.5">
-              Images captured and validated for SIFT feature matching and COLMAP SfM triangulation.
+              Images captured and validated for AI 3D Reconstruction and feature matching.
             </p>
           </div>
 

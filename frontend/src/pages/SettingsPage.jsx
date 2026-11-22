@@ -17,6 +17,7 @@ import { getHealth } from '../api/client';
 
 export default function SettingsPage() {
   const [health, setHealth] = useState(null);
+
   const [cpuThreads, setCpuThreads] = useState('-1');
   const [maxRamMb, setMaxRamMb] = useState('8192');
   const [siftFeatures, setSiftFeatures] = useState(2048);
@@ -35,7 +36,7 @@ export default function SettingsPage() {
   }, []);
 
   const handleSave = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     setSavedNotice(true);
     setTimeout(() => setSavedNotice(false), 2500);
   };
@@ -50,7 +51,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="p-8 max-w-[1300px] mx-auto space-y-6 select-none">
+    <div className="p-4 sm:p-6 lg:p-8 w-full space-y-4 sm:space-y-6 select-none">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
         <div>
@@ -59,7 +60,7 @@ export default function SettingsPage() {
             <span>System & Pipeline Settings</span>
           </h1>
           <p className="text-xs text-zinc-400 mt-1">
-            Configure execution parameters for OpenCV SIFT, COLMAP 4.2.1, and Open3D Poisson reconstruction.
+            Configure execution parameters for AI 3D Reconstruction, OpenCV SIFT, and 16-Core Offline Engine.
           </p>
         </div>
 
@@ -92,11 +93,11 @@ export default function SettingsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column: Hardware, Execution & File Storage */}
         <div className="space-y-6">
-          {/* 1. COLMAP Engine Hardware & Concurrency */}
+          {/* 1. Offline Local Engine Hardware & Concurrency */}
           <div className="rounded-xl surface-panel p-5 space-y-4 border border-white/[0.08]">
             <h3 className="text-sm font-semibold text-zinc-100 flex items-center space-x-2 m-0 tracking-tight">
               <Cpu className="w-4 h-4 text-blue-400" />
-              <span>COLMAP Engine & Execution</span>
+              <span>Offline Local Engine Hardware</span>
             </h3>
 
             <div className="space-y-3 text-xs font-mono">

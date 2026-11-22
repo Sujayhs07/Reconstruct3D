@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Camera, RefreshCw, Trash2, Upload, AlertTriangle, Info } from 'lucide-react';
+import { Camera, RefreshCw, Trash2, Upload, AlertTriangle, Info, SwitchCamera } from 'lucide-react';
 import { uploadImages } from '../api/client';
 
 export default function WebcamCapture({ projectId, onImagesAdded }) {
@@ -12,15 +12,24 @@ export default function WebcamCapture({ projectId, onImagesAdded }) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [shutterFlash, setShutterFlash] = useState(false);
+  const [facingMode, setFacingMode] = useState('environment'); // 'environment' (back) | 'user' (front)
 
-  const startCamera = async () => {
+  const stopCamera = () => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
+      streamRef.current = null;
+    }
+  };
+
+  const startCamera = async (mode = facingMode) => {
+    stopCamera();
     try {
       setPermissionError(null);
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           width: { ideal: 1920 },
           height: { ideal: 1080 },
-          facingMode: 'environment'
+          facingMode: { ideal: mode }
         },
         audio: false
       });
@@ -36,19 +45,18 @@ export default function WebcamCapture({ projectId, onImagesAdded }) {
     }
   };
 
-  const stopCamera = () => {
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    }
-  };
-
   useEffect(() => {
-    startCamera();
+    startCamera(facingMode);
     return () => {
       stopCamera();
     };
   }, []);
+
+  const toggleCameraFacing = () => {
+    const nextMode = facingMode === 'environment' ? 'user' : 'environment';
+    setFacingMode(nextMode);
+    startCamera(nextMode);
+  };
 
   const handleCapturePhoto = () => {
     if (!videoRef.current) return;
@@ -122,29 +130,29 @@ export default function WebcamCapture({ projectId, onImagesAdded }) {
   };
 
   return (
-    <div className="space-y-6 select-none">
+    <div className="space-y-4 sm:space-y-6 select-none">
       {/* Guidance Alert Banner */}
-      <div className="p-4 rounded-xl surface-panel border border-white/[0.08] text-xs text-zinc-300 flex items-start space-x-3">
+      <div className="p-3.5 sm:p-4 rounded-xl surface-panel border border-blue-500/20 bg-blue-950/20 text-xs text-zinc-300 flex items-start space-x-3">
         <Info className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
         <div className="space-y-1">
-          <span className="font-semibold text-zinc-100">Photogrammetry Best Practices:</span>
-          <p className="text-zinc-400 leading-relaxed">
-            Move steadily around the object maintaining 60%–80% visual overlap between consecutive shots. Capture at least 12–20 viewpoints from multiple elevations (eye-level, high-angle, low-angle). Keep good ambient lighting and avoid strong motion blur.
+          <span className="font-semibold text-zinc-100">3D Object Capture Guide:</span>
+          <p className="text-zinc-300 leading-relaxed text-[11px] sm:text-xs">
+            Place your object (like a bottle, mug, or shoe) on a table against a plain background. Keep the object centered inside the target box and take <strong>3 to 4 shots</strong> (Front, Right, Back, Left). Avoid holding the bottle directly in front of your face or body.
           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-5">
         {/* Live Camera Viewfinder */}
-        <div className="lg:col-span-7 rounded-xl surface-panel border border-white/[0.08] p-5 flex flex-col justify-between">
-          <div className="relative aspect-video rounded-lg bg-black overflow-hidden border border-zinc-800 flex items-center justify-center">
+        <div className="lg:col-span-7 rounded-xl surface-panel border border-white/[0.08] p-3.5 sm:p-5 flex flex-col justify-between">
+          <div className="relative aspect-video sm:aspect-[4/3] rounded-lg bg-black overflow-hidden border border-zinc-800 flex items-center justify-center">
             {hasPermission === false ? (
               <div className="p-6 text-center text-xs text-rose-400 space-y-2">
                 <AlertTriangle className="w-7 h-7 mx-auto" />
                 <p className="font-semibold">Camera Access Blocked</p>
                 <p className="text-zinc-500 max-w-xs">{permissionError}</p>
                 <button
-                  onClick={startCamera}
+                  onClick={() => startCamera(facingMode)}
                   className="btn-secondary px-3 py-1.5 text-xs"
                 >
                   Retry Camera
@@ -162,29 +170,52 @@ export default function WebcamCapture({ projectId, onImagesAdded }) {
 
                 {shutterFlash && <div className="absolute inset-0 bg-white pointer-events-none opacity-80" />}
 
-                {/* Overlap guide crosshairs */}
-                <div className="absolute inset-0 pointer-events-none flex items-center justify-center opacity-25">
-                  <div className="w-44 h-44 border border-dashed border-white rounded-full" />
-                  <div className="absolute w-full h-[1px] bg-white/20" />
-                  <div className="absolute h-full w-[1px] bg-white/20" />
+                {/* Center Object Framing Target Box */}
+                <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
+                  <div className="w-40 h-56 sm:w-48 sm:h-72 border-2 border-dashed border-blue-400/70 rounded-xl bg-blue-500/[0.04] flex flex-col items-center justify-between p-2 shadow-[0_0_15px_rgba(59,130,246,0.15)]">
+                    <span className="text-[10px] font-mono tracking-wider text-blue-300 bg-black/70 px-2 py-0.5 rounded border border-blue-500/30">
+                      TOP / CAP
+                    </span>
+                    <span className="text-[11px] font-medium text-blue-200 bg-black/70 px-2.5 py-1 rounded border border-blue-500/20">
+                      Center Bottle / Object Here
+                    </span>
+                    <span className="text-[10px] font-mono tracking-wider text-blue-300 bg-black/70 px-2 py-0.5 rounded border border-blue-500/30">
+                      BASE
+                    </span>
+                  </div>
+                </div>
+
+                {/* Camera Mode Indicator */}
+                <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded bg-black/60 border border-white/10 text-[10px] font-mono text-zinc-300">
+                  {facingMode === 'environment' ? 'Rear / Env Cam' : 'Front Cam'}
                 </div>
               </>
             )}
           </div>
 
           {/* Controls */}
-          <div className="mt-4 flex items-center space-x-3">
+          <div className="mt-3.5 sm:mt-4 flex flex-wrap items-center gap-2.5">
             <button
               onClick={handleCapturePhoto}
               disabled={!hasPermission}
-              className="btn-primary flex items-center space-x-2 px-4 py-2 text-xs"
+              className="btn-primary flex-1 sm:flex-none flex items-center justify-center space-x-2 px-4 py-2 text-xs"
             >
               <Camera className="w-4 h-4" />
               <span>Capture Viewpoint ({capturedPhotos.length})</span>
             </button>
 
+            {/* Flip Camera Button (Ideal for mobile phones) */}
             <button
-              onClick={startCamera}
+              onClick={toggleCameraFacing}
+              title="Flip Front/Rear Camera"
+              className="btn-secondary p-2 flex items-center space-x-1.5 text-xs"
+            >
+              <SwitchCamera className="w-4 h-4" />
+              <span className="hidden sm:inline">Flip</span>
+            </button>
+
+            <button
+              onClick={() => startCamera(facingMode)}
               title="Restart Camera"
               className="btn-secondary p-2"
             >
@@ -194,7 +225,7 @@ export default function WebcamCapture({ projectId, onImagesAdded }) {
         </div>
 
         {/* Captured Photos Gallery */}
-        <div className="lg:col-span-5 rounded-xl surface-panel border border-white/[0.08] p-5 flex flex-col h-[440px]">
+        <div className="lg:col-span-5 rounded-xl surface-panel border border-white/[0.08] p-3.5 sm:p-5 flex flex-col h-[340px] sm:h-[440px]">
           <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
             <div>
               <h3 className="text-xs font-semibold text-zinc-200">Captured Viewpoints</h3>
@@ -208,7 +239,7 @@ export default function WebcamCapture({ projectId, onImagesAdded }) {
                 className="btn-primary flex items-center space-x-1.5 px-3 py-1.5 text-xs disabled:opacity-40"
               >
                 <Upload className="w-3.5 h-3.5" />
-                <span>{isUploading ? `Uploading ${uploadProgress}%` : 'Upload to Project'}</span>
+                <span>{isUploading ? `Uploading ${uploadProgress}%` : 'Upload'}</span>
               </button>
             )}
           </div>

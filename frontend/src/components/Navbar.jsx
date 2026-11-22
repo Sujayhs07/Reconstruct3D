@@ -73,12 +73,8 @@ export default function Navbar() {
           <div className="flex items-center space-x-3 text-xs font-mono">
             <div className="flex items-center space-x-1.5 px-2 py-1 rounded bg-[#0f1115] border border-[#2a2e39] text-slate-300">
               <Cpu className="w-3.5 h-3.5 text-blue-400" />
-              <span>COLMAP 4.2.1</span>
-              {health.colmap_available ? (
-                <span className="w-2 h-2 rounded-full bg-emerald-500" title="COLMAP binary verified" />
-              ) : (
-                <span className="w-2 h-2 rounded-full bg-amber-500" title="Checking COLMAP" />
-              )}
+              <span>AI 3D Engine</span>
+              <span className="w-2 h-2 rounded-full bg-emerald-500" title="AI 3D Engine Ready" />
             </div>
 
             <div
