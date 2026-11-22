@@ -7,9 +7,6 @@ import {
   Box,
   Layers,
   ArrowLeft,
-  CheckCircle2,
-  AlertCircle,
-  Clock,
   Trash2
 } from 'lucide-react';
 import { getProject, deleteProject } from '../api/client';
@@ -23,6 +20,7 @@ export default function ProjectWorkspace() {
 
   const loadProject = async () => {
     try {
+      setLoading(true);
       const res = await getProject(id);
       setProject(res.data);
     } catch (err) {
@@ -37,10 +35,10 @@ export default function ProjectWorkspace() {
   }, [id]);
 
   const navItems = [
-    { path: `/projects/${id}/images`, label: 'Image Acquisition', icon: Image, count: project?.image_count },
-    { path: `/projects/${id}/analysis`, label: 'Image Analysis', icon: Sparkles },
+    { path: `/projects/${id}/images`, label: 'Acquisition', icon: Image, count: project?.image_count },
+    { path: `/projects/${id}/analysis`, label: 'Quality & SIFT', icon: Sparkles },
     { path: `/projects/${id}/reconstruct`, label: 'Reconstruction Pipeline', icon: Cpu },
-    { path: `/projects/${id}/viewer`, label: '3D Interactive Viewer', icon: Box, highlight: project?.status === 'completed' },
+    { path: `/projects/${id}/models`, label: '3D Viewer', icon: Box, highlight: project?.status === 'completed' },
   ];
 
   const isActive = (p) => location.pathname.startsWith(p);
@@ -56,70 +54,70 @@ export default function ProjectWorkspace() {
   };
 
   if (loading) {
-    return <div className="max-w-7xl mx-auto px-4 py-12 text-slate-500 font-mono text-xs text-center">Loading project...</div>;
+    return <div className="p-12 text-zinc-500 font-mono text-xs text-center">Loading project...</div>;
   }
 
   if (!project) {
     return (
-      <div className="max-w-7xl mx-auto px-4 py-12 text-center space-y-3">
-        <p className="text-slate-300 text-sm">Project not found.</p>
+      <div className="p-12 text-center space-y-3">
+        <p className="text-zinc-300 text-sm">Project not found.</p>
         <Link to="/" className="text-blue-400 text-xs hover:underline">Return to Dashboard</Link>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-      {/* Project Navigation Top Bar */}
-      <div className="bg-[#161920] border border-[#2a2e39] rounded-lg p-5">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#2a2e39] pb-4">
+    <div className="p-8 max-w-[1300px] mx-auto space-y-6 select-none">
+      {/* Project Workspace Header Bar */}
+      <div className="rounded-xl surface-panel p-5 space-y-4 border border-white/[0.08]">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
           <div className="space-y-1">
             <div className="flex items-center space-x-3">
-              <Link to="/" className="text-slate-400 hover:text-white transition-colors" title="Back to Dashboard">
-                <ArrowLeft className="w-4 h-4" />
+              <Link
+                to="/"
+                className="w-7 h-7 rounded-lg bg-zinc-800 border border-zinc-700 flex items-center justify-center text-zinc-400 hover:text-white transition-colors"
+                title="Back to Dashboard"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
               </Link>
-              <h1 className="text-lg font-bold text-slate-100 m-0">{project.name}</h1>
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-blue-950 text-blue-400 border border-blue-800">
+              <h1 className="text-base font-bold text-zinc-100 m-0 tracking-tight">{project.name}</h1>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-zinc-800 text-zinc-300 border border-zinc-700">
                 {project.status.toUpperCase()}
               </span>
             </div>
             {project.description && (
-              <p className="text-xs text-slate-400 pl-7">{project.description}</p>
+              <p className="text-xs text-zinc-400 pl-10">{project.description}</p>
             )}
           </div>
 
-          <div className="flex items-center space-x-4 pl-7 md:pl-0">
-            <div className="flex items-center space-x-4 text-xs font-mono text-slate-400">
+          <div className="flex items-center space-x-6 pl-10 md:pl-0">
+            <div className="flex items-center space-x-5 text-xs font-mono text-zinc-400">
               <div>
-                <span className="text-slate-500">Photos: </span>
-                <span className="text-slate-200 font-medium">{project.image_count}</span>
+                <span className="text-zinc-500 block text-[10px]">PHOTOS</span>
+                <span className="text-zinc-200 font-medium">{project.image_count}</span>
               </div>
               <div>
-                <span className="text-slate-500">Sparse: </span>
-                <span className="text-slate-200 font-medium">{(project.sparse_point_count || 0).toLocaleString()}</span>
+                <span className="text-zinc-500 block text-[10px]">SPARSE PTS</span>
+                <span className="text-zinc-200 font-medium">{project.sparse_points_count ?? 0}</span>
               </div>
               <div>
-                <span className="text-slate-500">Dense: </span>
-                <span className="text-slate-200 font-medium">{(project.dense_point_count || 0).toLocaleString()}</span>
-              </div>
-              <div>
-                <span className="text-slate-500">Mesh Tris: </span>
-                <span className="text-slate-200 font-medium">{(project.mesh_triangle_count || 0).toLocaleString()}</span>
+                <span className="text-zinc-500 block text-[10px]">MESH TRIS</span>
+                <span className="text-zinc-200 font-medium">{project.mesh_triangles_count ?? 0}</span>
               </div>
             </div>
 
             <button
               onClick={handleDelete}
-              title="Delete project"
-              className="p-1.5 rounded hover:bg-red-950/60 text-slate-400 hover:text-red-400 transition-colors"
+              className="p-1.5 rounded-lg hover:bg-rose-950/50 text-zinc-500 hover:text-rose-400 border border-transparent hover:border-rose-900/40 transition-colors"
+              title="Delete Project"
             >
               <Trash2 className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* Workspace Tab Bar */}
-        <div className="flex items-center space-x-2 mt-4 overflow-x-auto text-xs">
+        {/* Tab Navigation */}
+        <div className="flex flex-wrap items-center gap-1.5 pt-1">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
@@ -127,18 +125,16 @@ export default function ProjectWorkspace() {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center space-x-2 px-3.5 py-2 rounded-md font-medium transition-colors whitespace-nowrap ${
+                className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                   active
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : item.highlight
-                    ? 'bg-emerald-950/60 text-emerald-300 border border-emerald-800 hover:bg-emerald-900/50'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-[#2a2e39]'
+                    ? 'bg-zinc-800 text-zinc-100 border border-zinc-700/60 shadow-sm'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60'
                 }`}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className="w-3.5 h-3.5 shrink-0" />
                 <span>{item.label}</span>
                 {item.count !== undefined && (
-                  <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono ${active ? 'bg-blue-800 text-white' : 'bg-[#0f1115] text-slate-400'}`}>
+                  <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded ${active ? 'bg-zinc-700 text-zinc-200' : 'bg-zinc-900 text-zinc-500'}`}>
                     {item.count}
                   </span>
                 )}
@@ -148,10 +144,8 @@ export default function ProjectWorkspace() {
         </div>
       </div>
 
-      {/* Outlet for Child Workspace Routes */}
-      <div>
-        <Outlet context={{ project, reloadProject: loadProject }} />
-      </div>
+      {/* Outlet Sub-pages */}
+      <Outlet context={{ project, reloadProject: loadProject }} />
     </div>
   );
 }

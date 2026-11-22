@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { GitCompare, Cpu } from 'lucide-react';
+import React, { useState } from 'react';
+import { GitCompare, Cpu, AlertCircle } from 'lucide-react';
 import { runFeatureMatch } from '../api/client';
 
 export default function FeatureMatchViewer({ projectId, images = [], onMatchGenerated }) {
@@ -9,17 +9,6 @@ export default function FeatureMatchViewer({ projectId, images = [], onMatchGene
   const [isRunning, setIsRunning] = useState(false);
   const [matchResult, setMatchResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
-
-  useEffect(() => {
-    if (images.length > 0) {
-      if (!images.some((img) => img.id === selectedImg1)) {
-        setSelectedImg1(images[0].id);
-      }
-      if (!images.some((img) => img.id === selectedImg2)) {
-        setSelectedImg2(images[1]?.id || images[0].id);
-      }
-    }
-  }, [images, selectedImg1, selectedImg2]);
 
   const handleRunMatch = async () => {
     if (!selectedImg1 || !selectedImg2) return;
@@ -42,120 +31,117 @@ export default function FeatureMatchViewer({ projectId, images = [], onMatchGene
   };
 
   return (
-    <div className="bg-[#161920] border border-[#2a2e39] rounded-lg p-5 space-y-5">
-      <div className="flex items-center justify-between border-b border-[#2a2e39] pb-3">
+    <div className="rounded-xl surface-panel border border-white/[0.08] p-5 space-y-4 select-none">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800 pb-3">
         <div>
-          <h3 className="text-sm font-semibold text-slate-100 flex items-center space-x-2">
-            <GitCompare className="w-4 h-4 text-blue-400" />
+          <h3 className="text-sm font-semibold text-zinc-100 flex items-center space-x-2 m-0 tracking-tight">
+            <GitCompare className="w-4 h-4 text-zinc-400" />
             <span>SIFT Feature Extraction & Epipolar Verification</span>
           </h3>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Extracts Scale-Invariant Feature Transform (SIFT) descriptors, applies Lowe's ratio test, and verifies matches with RANSAC Fundamental Matrix.
+          <p className="text-xs text-zinc-400 mt-0.5">
+            Extracts Scale-Invariant Feature Transform keypoints and computes Lowe's ratio test with RANSAC Fundamental Matrix estimation.
           </p>
         </div>
 
         <button
           onClick={handleRunMatch}
           disabled={isRunning || images.length < 2}
-          className="flex items-center space-x-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded text-xs font-medium transition-colors shadow-sm"
+          className="btn-primary px-3.5 py-1.5 text-xs disabled:opacity-40 flex items-center space-x-1.5 shrink-0"
         >
-          <Cpu className="w-4 h-4" />
-          <span>{isRunning ? 'Computing SIFT & RANSAC...' : 'Run Feature Matching'}</span>
+          <Cpu className="w-3.5 h-3.5" />
+          <span>{isRunning ? 'Matching...' : 'Run Feature Matching'}</span>
         </button>
       </div>
 
-      {/* Image Pair Selection */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 items-center">
+      {/* Image Pair Selection Inputs */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 items-center text-xs">
         <div>
-          <label className="block text-xs font-medium text-slate-300 mb-1">Image A (Reference View)</label>
+          <label className="block font-mono text-zinc-400 mb-1 text-[11px]">Image A (Reference)</label>
           <select
             value={selectedImg1}
             onChange={(e) => setSelectedImg1(e.target.value)}
-            className="w-full bg-[#0f1115] border border-[#2a2e39] rounded px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 font-mono"
+            className="w-full bg-zinc-950 border border-zinc-800 focus:border-zinc-700 rounded-lg px-3 py-1.5 text-zinc-200 text-xs focus:outline-none"
           >
             {images.map((img) => (
               <option key={img.id} value={img.id}>
-                {img.original_filename} ({img.keypoint_count || 0} kps)
+                {img.filename} ({img.width}x{img.height})
               </option>
             ))}
           </select>
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-slate-300 mb-1">Image B (Target View)</label>
+          <label className="block font-mono text-zinc-400 mb-1 text-[11px]">Image B (Query View)</label>
           <select
             value={selectedImg2}
             onChange={(e) => setSelectedImg2(e.target.value)}
-            className="w-full bg-[#0f1115] border border-[#2a2e39] rounded px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 font-mono"
+            className="w-full bg-zinc-950 border border-zinc-800 focus:border-zinc-700 rounded-lg px-3 py-1.5 text-zinc-200 text-xs focus:outline-none"
           >
             {images.map((img) => (
               <option key={img.id} value={img.id}>
-                {img.original_filename} ({img.keypoint_count || 0} kps)
+                {img.filename} ({img.width}x{img.height})
               </option>
             ))}
           </select>
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-slate-300 mb-1">Max SIFT Keypoints</label>
+          <label className="block font-mono text-zinc-400 mb-1 text-[11px]">Max Keypoints (SIFT)</label>
           <input
             type="number"
             min="500"
-            max="5000"
+            max="8000"
             step="500"
             value={nFeatures}
             onChange={(e) => setNFeatures(parseInt(e.target.value) || 2000)}
-            className="w-full bg-[#0f1115] border border-[#2a2e39] rounded px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 font-mono"
+            className="w-full bg-zinc-950 border border-zinc-800 focus:border-zinc-700 rounded-lg px-3 py-1.5 text-zinc-200 font-mono text-xs focus:outline-none"
           />
         </div>
       </div>
 
       {errorMsg && (
-        <div className="p-3 rounded bg-red-950/40 border border-red-800 text-red-300 text-xs">
-          {errorMsg}
+        <div className="p-3 rounded-lg bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs flex items-center space-x-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{errorMsg}</span>
         </div>
       )}
 
-      {/* Result Metrics */}
+      {/* Matching Results & Inlier Visualization */}
       {matchResult && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono text-xs">
-            <div className="p-3 bg-[#0f1115] border border-[#2a2e39] rounded">
-              <span className="text-slate-400 block text-[11px]">Tentative Matches</span>
-              <span className="text-base font-semibold text-slate-100">{matchResult.total_matches}</span>
+        <div className="space-y-4 pt-1">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
+            <div className="p-3 bg-zinc-950 border border-zinc-800/80 rounded-lg">
+              <span className="text-zinc-500 block text-[10px] uppercase">Image 1 Keypoints</span>
+              <span className="text-zinc-200 font-bold">{matchResult.keypoints_image1?.toLocaleString()}</span>
             </div>
-            <div className="p-3 bg-[#0f1115] border border-[#2a2e39] rounded">
-              <span className="text-slate-400 block text-[11px]">RANSAC Inliers</span>
-              <span className="text-base font-semibold text-emerald-400">{matchResult.inlier_matches}</span>
+            <div className="p-3 bg-zinc-950 border border-zinc-800/80 rounded-lg">
+              <span className="text-zinc-500 block text-[10px] uppercase">Image 2 Keypoints</span>
+              <span className="text-zinc-200 font-bold">{matchResult.keypoints_image2?.toLocaleString()}</span>
             </div>
-            <div className="p-3 bg-[#0f1115] border border-[#2a2e39] rounded">
-              <span className="text-slate-400 block text-[11px]">Inlier Ratio</span>
-              <span className="text-base font-semibold text-blue-400">
-                {matchResult.total_matches > 0
-                  ? `${Math.round((matchResult.inlier_matches / matchResult.total_matches) * 100)}%`
-                  : '0%'}
-              </span>
+            <div className="p-3 bg-zinc-950 border border-zinc-800/80 rounded-lg">
+              <span className="text-zinc-500 block text-[10px] uppercase">Raw KNN Matches</span>
+              <span className="text-zinc-400 font-bold">{matchResult.raw_matches?.toLocaleString()}</span>
             </div>
-            <div className="p-3 bg-[#0f1115] border border-[#2a2e39] rounded">
-              <span className="text-slate-400 block text-[11px]">Epipolar Geometry</span>
-              <span className="text-base font-semibold text-purple-400">
-                {matchResult.inlier_matches >= 8 ? 'Verified' : 'Degenerate'}
+            <div className="p-3 bg-zinc-950 border border-zinc-800/80 rounded-lg">
+              <span className="text-zinc-500 block text-[10px] uppercase">RANSAC Inliers</span>
+              <span className="text-emerald-400 font-bold text-sm">
+                {matchResult.inlier_matches?.toLocaleString()} ({matchResult.inlier_ratio_pct}%)
               </span>
             </div>
           </div>
 
-          {/* Visual epipolar matches canvas */}
           {matchResult.visualization_path && (
-            <div className="border border-[#2a2e39] rounded-lg overflow-hidden bg-black">
-              <div className="px-3 py-1.5 bg-[#1e222b] border-b border-[#2a2e39] text-xs font-mono text-slate-300 flex items-center justify-between">
-                <span>Side-by-side Correspondences (Green: RANSAC Inlier rays)</span>
-                <span>{matchResult.image1_name} ↔ {matchResult.image2_name}</span>
+            <div className="space-y-2">
+              <span className="text-xs font-mono text-zinc-400 block">
+                Two-View Epipolar Inlier Correspondences (RANSAC Verified):
+              </span>
+              <div className="rounded-lg overflow-hidden border border-zinc-800 bg-black">
+                <img
+                  src={matchResult.visualization_path}
+                  alt="SIFT Epipolar Inlier Matches"
+                  className="w-full object-contain max-h-[440px]"
+                />
               </div>
-              <img
-                src={matchResult.visualization_path}
-                alt="Feature Matches Visualization"
-                className="w-full h-auto max-h-[500px] object-contain mx-auto"
-              />
             </div>
           )}
         </div>

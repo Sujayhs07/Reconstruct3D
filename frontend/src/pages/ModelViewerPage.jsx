@@ -4,11 +4,9 @@ import {
   Box,
   Layers,
   Download,
-  Share2,
   Cpu,
   Info,
   CheckCircle2,
-  FileCode,
   HardDrive
 } from 'lucide-react';
 import { getProjectModels, getModelStats, getModelDownloadUrl } from '../api/client';
@@ -49,37 +47,18 @@ export default function ModelViewerPage() {
   }, [id]);
 
   if (loading) {
-    return <div className="p-8 text-center text-slate-500 text-xs font-mono">Loading 3D reconstructed assets...</div>;
-  }
-
-  if (artifacts.length === 0) {
-    return (
-      <div className="bg-[#161920] border border-[#2a2e39] rounded-lg p-12 text-center space-y-3">
-        <Box className="w-12 h-12 text-slate-600 mx-auto" />
-        <h3 className="text-sm font-semibold text-slate-200">No Reconstructed Models Yet</h3>
-        <p className="text-xs text-slate-400 max-w-sm mx-auto">
-          Please run the photogrammetry reconstruction pipeline first to generate sparse/dense point clouds and 3D meshes.
-        </p>
-        <Link
-          to={`/projects/${id}/reconstruct`}
-          className="inline-flex items-center space-x-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-medium"
-        >
-          <Cpu className="w-4 h-4" />
-          <span>Go to Reconstruction Pipeline</span>
-        </Link>
-      </div>
-    );
+    return <div className="p-12 text-center text-zinc-500 text-xs font-mono">Loading 3D reconstructed assets...</div>;
   }
 
   const isPointCloud = selectedArtifact?.artifact_type?.includes('points') || selectedArtifact?.artifact_type?.includes('pcd');
 
   return (
-    <div className="space-y-6">
-      {/* 3D Asset Selector Pills */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-[#161920] border border-[#2a2e39] rounded-lg p-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold text-slate-400 font-mono uppercase mr-1">
-            Reconstructed Assets:
+    <div className="space-y-6 select-none">
+      {/* 3D Asset Selector Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl surface-panel p-3 border border-white/[0.08]">
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="text-xs font-semibold text-zinc-400 font-mono uppercase mr-1">
+            Generated Assets:
           </span>
           {artifacts.map((art) => {
             const isSelected = selectedArtifact?.id === art.id;
@@ -87,14 +66,14 @@ export default function ModelViewerPage() {
               <button
                 key={art.id}
                 onClick={() => setSelectedArtifact(art)}
-                className={`px-3 py-1.5 rounded-md text-xs font-mono transition-colors flex items-center space-x-1.5 ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-colors flex items-center space-x-2 ${
                   isSelected
-                    ? 'bg-blue-600 text-white shadow-sm'
-                    : 'bg-[#0f1115] text-slate-300 hover:bg-[#2a2e39] border border-[#2a2e39]'
+                    ? 'bg-zinc-800 text-zinc-100 border border-zinc-700 shadow-sm'
+                    : 'bg-zinc-950/60 text-zinc-400 hover:bg-zinc-900 border border-zinc-800'
                 }`}
               >
                 <span>{art.filename}</span>
-                <span className={`text-[10px] uppercase px-1 py-0.2 rounded ${isSelected ? 'bg-blue-800' : 'bg-[#1e222b] text-slate-400'}`}>
+                <span className={`text-[10px] uppercase px-1 py-0.2 rounded ${isSelected ? 'bg-zinc-700 text-zinc-200' : 'bg-zinc-900 text-zinc-500'}`}>
                   {art.format}
                 </span>
               </button>
@@ -106,96 +85,93 @@ export default function ModelViewerPage() {
           <a
             href={getModelDownloadUrl(id, selectedArtifact.filename)}
             download
-            className="flex items-center space-x-1.5 px-3 py-1.5 bg-[#1e222b] hover:bg-[#2a2e39] border border-[#2a2e39] text-slate-200 rounded text-xs font-medium transition-colors"
+            className="btn-primary flex items-center space-x-1.5 px-3 py-1.5 text-xs"
           >
-            <Download className="w-3.5 h-3.5 text-blue-400" />
+            <Download className="w-3.5 h-3.5" />
             <span>Download {selectedArtifact.format.toUpperCase()}</span>
           </a>
         )}
       </div>
 
-      {/* Interactive 3D Viewer Canvas */}
-      {selectedArtifact && (
-        <Viewer3D
-          modelUrl={selectedArtifact.file_path}
-          format={selectedArtifact.format}
-          isPointCloud={isPointCloud}
-          modelName={selectedArtifact.filename}
-          stats={stats}
-        />
-      )}
+      {/* 3D Viewer Cockpit */}
+      <Viewer3D
+        modelUrl={selectedArtifact?.file_path}
+        format={selectedArtifact?.format || 'ply'}
+        isPointCloud={isPointCloud}
+        modelName={selectedArtifact?.filename || 'Reconstructed_Model'}
+        stats={stats}
+        availableArtifacts={artifacts}
+        onSelectArtifact={setSelectedArtifact}
+      />
 
-      {/* Model Export & Statistics Panels */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Metadata & Export Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* Model Geometry Diagnostics */}
-        <div className="bg-[#161920] border border-[#2a2e39] rounded-lg p-5 space-y-4">
-          <h3 className="text-sm font-semibold text-slate-100 flex items-center space-x-2">
-            <Info className="w-4 h-4 text-blue-400" />
-            <span>Model Geometry Metadata</span>
+        <div className="rounded-xl surface-panel p-5 space-y-4 border border-white/[0.08]">
+          <h3 className="text-sm font-semibold text-zinc-100 flex items-center space-x-2 m-0 tracking-tight">
+            <Info className="w-4 h-4 text-zinc-400" />
+            <span>Geometry & Camera Diagnostics</span>
           </h3>
 
           <div className="grid grid-cols-2 gap-3 text-xs font-mono">
-            <div className="p-3 bg-[#0f1115] border border-[#2a2e39] rounded">
-              <span className="text-slate-500 block text-[11px]">Registered Photographs</span>
-              <span className="text-slate-200 font-semibold text-base">{stats.registered_images || 0}</span>
+            <div className="p-3 bg-zinc-950/80 border border-zinc-800/80 rounded-lg">
+              <span className="text-zinc-500 block text-[10px] uppercase">Registered Photographs</span>
+              <span className="text-zinc-100 font-bold text-base">{stats.registered_images || 0}</span>
             </div>
 
-            <div className="p-3 bg-[#0f1115] border border-[#2a2e39] rounded">
-              <span className="text-slate-500 block text-[11px]">Sparse Points (SfM)</span>
-              <span className="text-slate-200 font-semibold text-base">{(stats.sparse_points || 0).toLocaleString()}</span>
+            <div className="p-3 bg-zinc-950/80 border border-zinc-800/80 rounded-lg">
+              <span className="text-zinc-500 block text-[10px] uppercase">Sparse Points (SfM)</span>
+              <span className="text-zinc-100 font-bold text-base">{(stats.sparse_points || 0).toLocaleString()}</span>
             </div>
 
-            <div className="p-3 bg-[#0f1115] border border-[#2a2e39] rounded">
-              <span className="text-slate-500 block text-[11px]">Dense Points (MVS)</span>
-              <span className="text-emerald-400 font-semibold text-base">{(stats.dense_points || 0).toLocaleString()}</span>
+            <div className="p-3 bg-zinc-950/80 border border-zinc-800/80 rounded-lg">
+              <span className="text-zinc-500 block text-[10px] uppercase">Dense Points (MVS)</span>
+              <span className="text-blue-400 font-bold text-base">{(stats.dense_points || 0).toLocaleString()}</span>
             </div>
 
-            <div className="p-3 bg-[#0f1115] border border-[#2a2e39] rounded">
-              <span className="text-slate-500 block text-[11px]">Mesh Triangles</span>
-              <span className="text-purple-400 font-semibold text-base">{(stats.mesh_triangles || 0).toLocaleString()}</span>
+            <div className="p-3 bg-zinc-950/80 border border-zinc-800/80 rounded-lg">
+              <span className="text-zinc-500 block text-[10px] uppercase">Mesh Triangles</span>
+              <span className="text-zinc-100 font-bold text-base">{(stats.mesh_triangles || 0).toLocaleString()}</span>
             </div>
           </div>
-
-          {stats.point_cloud_stats && stats.point_cloud_stats.bounds_min && (
-            <div className="p-3 bg-[#0f1115] border border-[#2a2e39] rounded space-y-1 text-xs font-mono text-slate-400">
-              <span className="text-slate-500 block text-[10px] uppercase">Axis-Aligned Bounding Box (AABB)</span>
-              <div>Min: [{stats.point_cloud_stats.bounds_min.join(', ')}]</div>
-              <div>Max: [{stats.point_cloud_stats.bounds_max.join(', ')}]</div>
-              <div>Center: [{stats.point_cloud_stats.center.join(', ')}]</div>
-            </div>
-          )}
         </div>
 
         {/* Model Downloads & Formats */}
-        <div className="bg-[#161920] border border-[#2a2e39] rounded-lg p-5 space-y-4">
-          <h3 className="text-sm font-semibold text-slate-100 flex items-center space-x-2">
+        <div className="rounded-xl surface-panel p-5 space-y-4 border border-white/[0.08]">
+          <h3 className="text-sm font-semibold text-zinc-100 flex items-center space-x-2 m-0 tracking-tight">
             <HardDrive className="w-4 h-4 text-emerald-400" />
-            <span>Export Formats & Downloads</span>
+            <span>Export Formats & Artifacts</span>
           </h3>
 
           <div className="space-y-2">
-            {artifacts.map((art) => (
-              <div
-                key={art.id}
-                className="flex items-center justify-between p-3 rounded-lg border border-[#2a2e39] bg-[#0f1115] text-xs font-mono"
-              >
-                <div className="space-y-0.5 truncate pr-2">
-                  <div className="text-slate-200 font-medium truncate">{art.filename}</div>
-                  <div className="text-slate-500 text-[11px]">
-                    {art.artifact_type} · {Math.round(art.file_size / 1024)} KB
-                  </div>
-                </div>
-
-                <a
-                  href={getModelDownloadUrl(id, art.filename)}
-                  download
-                  className="flex items-center space-x-1.5 px-3 py-1.5 bg-blue-600/20 hover:bg-blue-600 text-blue-300 hover:text-white border border-blue-500/30 rounded text-xs transition-colors shrink-0"
+            {artifacts.length > 0 ? (
+              artifacts.map((art) => (
+                <div
+                  key={art.id}
+                  className="flex items-center justify-between p-2.5 rounded-lg border border-zinc-800/80 bg-zinc-950/80 text-xs font-mono"
                 >
-                  <Download className="w-3.5 h-3.5" />
-                  <span>Download</span>
-                </a>
+                  <div className="space-y-0.5 truncate pr-2">
+                    <div className="text-zinc-200 font-medium truncate">{art.filename}</div>
+                    <div className="text-zinc-500 text-[11px]">
+                      {art.artifact_type} · {Math.round(art.file_size / 1024)} KB
+                    </div>
+                  </div>
+
+                  <a
+                    href={getModelDownloadUrl(id, art.filename)}
+                    download
+                    className="btn-secondary flex items-center space-x-1 px-2.5 py-1 text-xs shrink-0"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Download</span>
+                  </a>
+                </div>
+              ))
+            ) : (
+              <div className="text-xs text-zinc-500 font-mono text-center py-6">
+                Run the reconstruction pipeline to export PLY, OBJ, and GLB files.
               </div>
-            ))}
+            )}
           </div>
         </div>
       </div>

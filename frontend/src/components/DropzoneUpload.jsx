@@ -1,9 +1,17 @@
 import React, { useState, useRef } from 'react';
-import { UploadCloud, FileImage, X, AlertCircle, CheckCircle2, ShieldAlert } from 'lucide-react';
+import {
+  UploadCloud,
+  FileImage,
+  X,
+  AlertCircle,
+  CheckCircle2,
+  Loader2
+} from 'lucide-react';
 import { uploadImages } from '../api/client';
 
-export default function DropzoneUpload({ projectId, onImagesUploaded }) {
+export default function DropzoneUpload({ projectId, onImagesUploaded, onClose }) {
   const fileInputRef = useRef(null);
+  const [activeTab, setActiveTab] = useState('device');
   const [dragActive, setDragActive] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -11,7 +19,7 @@ export default function DropzoneUpload({ projectId, onImagesUploaded }) {
   const [errorMessage, setErrorMessage] = useState(null);
 
   const allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
-  const maxSizeBytes = 50 * 1024 * 1024; // 50MB
+  const maxSizeBytes = 100 * 1024 * 1024; // 100MB matching Image 3
 
   const handleFiles = (files) => {
     setErrorMessage(null);
@@ -20,22 +28,21 @@ export default function DropzoneUpload({ projectId, onImagesUploaded }) {
       const file = files[i];
       const ext = file.name.split('.').pop().toLowerCase();
       if (!allowedExtensions.includes(ext)) {
-        setErrorMessage(`File ${file.name} has an unsupported format. Allowed: JPG, PNG, WEBP.`);
+        setErrorMessage(`File "${file.name}" has an unsupported format. Allowed: JPG, PNG, WEBP.`);
         continue;
       }
       if (file.size > maxSizeBytes) {
-        setErrorMessage(`File ${file.name} exceeds 50MB limit.`);
+        setErrorMessage(`File "${file.name}" exceeds the 100MB limit.`);
         continue;
       }
-      // Generate preview object
       valid.push({
         file,
-        id: `${file.name}-${file.size}-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 7)}`,
+        id: file.name + file.size + Date.now() + Math.random(),
         preview: URL.createObjectURL(file),
-        sizeKb: Math.round(file.size / 1024)
+        sizeStr: file.size > 1024 * 1024 ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` : `${Math.round(file.size / 1024)} KB`,
+        status: 'ready'
       });
     }
-
     setSelectedFiles((prev) => [...prev, ...valid]);
   };
 
@@ -68,7 +75,7 @@ export default function DropzoneUpload({ projectId, onImagesUploaded }) {
   const handleUpload = async () => {
     if (selectedFiles.length === 0 || isUploading) return;
     setIsUploading(true);
-    setUploadProgress(0);
+    setUploadProgress(15);
     setErrorMessage(null);
 
     const formData = new FormData();
@@ -78,8 +85,10 @@ export default function DropzoneUpload({ projectId, onImagesUploaded }) {
 
     try {
       const res = await uploadImages(projectId, formData, (evt) => {
-        const percent = evt.total ? Math.round((evt.loaded * 100) / evt.total) : 0;
-        setUploadProgress(percent);
+        if (evt.total) {
+          const percent = Math.round((evt.loaded * 100) / evt.total);
+          setUploadProgress(percent);
+        }
       });
 
       selectedFiles.forEach((f) => URL.revokeObjectURL(f.preview));
@@ -87,106 +96,185 @@ export default function DropzoneUpload({ projectId, onImagesUploaded }) {
       if (onImagesUploaded) {
         onImagesUploaded(res.data);
       }
+      if (onClose) {
+        onClose();
+      }
     } catch (err) {
       console.error('Upload error:', err);
       setErrorMessage(err.response?.data?.detail || err.message || 'Upload failed.');
     } finally {
       setIsUploading(false);
-      setUploadProgress(0);
     }
   };
 
   return (
-    <div className="space-y-4">
+    <div className="w-full max-w-xl mx-auto rounded-xl bg-[#111114] border border-white/[0.08] p-6 shadow-xl text-zinc-100 select-none">
+      {/* Modal Header */}
+      <div className="flex items-center justify-between pb-3 border-b border-zinc-800">
+        <h3 className="text-sm font-semibold text-zinc-100 tracking-tight">Upload files</h3>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="w-7 h-7 rounded-md bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+      </div>
+
+      {/* Tabs matching Image 3: Drive | Your device | Embed link */}
+      <div className="flex items-center space-x-6 pt-3 pb-2 border-b border-zinc-800 text-xs font-medium">
+        <button
+          onClick={() => setActiveTab('drive')}
+          className={`pb-2 transition-colors ${
+            activeTab === 'drive'
+              ? 'text-zinc-100 border-b-2 border-zinc-100 font-semibold'
+              : 'text-zinc-400 hover:text-zinc-200'
+          }`}
+        >
+          Drive
+        </button>
+        <button
+          onClick={() => setActiveTab('device')}
+          className={`pb-2 transition-colors ${
+            activeTab === 'device'
+              ? 'text-zinc-100 border-b-2 border-zinc-100 font-semibold'
+              : 'text-zinc-400 hover:text-zinc-200'
+          }`}
+        >
+          Your device
+        </button>
+        <button
+          onClick={() => setActiveTab('embed')}
+          className={`pb-2 transition-colors ${
+            activeTab === 'embed'
+              ? 'text-zinc-100 border-b-2 border-zinc-100 font-semibold'
+              : 'text-zinc-400 hover:text-zinc-200'
+          }`}
+        >
+          Embed link
+        </button>
+      </div>
+
+      {/* Dropzone Area matching Image 3 */}
+      <div className="py-4">
+        <div
+          onDragOver={onDragOver}
+          onDragLeave={onDragLeave}
+          onDrop={onDrop}
+          onClick={() => fileInputRef.current?.click()}
+          className={`border border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
+            dragActive
+              ? 'border-blue-500 bg-blue-950/20'
+              : 'border-zinc-800 hover:border-zinc-700 bg-zinc-950/60'
+          }`}
+        >
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept=".jpg,.jpeg,.png,.webp"
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files) handleFiles(e.target.files);
+            }}
+          />
+
+          <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto mb-2.5 text-zinc-400">
+            <UploadCloud className="w-5 h-5 text-blue-400" />
+          </div>
+
+          <p className="text-xs text-zinc-300 font-medium">
+            Drag and drop or{' '}
+            <span className="text-zinc-100 font-semibold hover:underline">
+              select files
+            </span>
+          </p>
+          <span className="text-[11px] font-mono text-zinc-500 mt-1 block">
+            Max file size: 100MB
+          </span>
+        </div>
+      </div>
+
+      {/* Error Message */}
       {errorMessage && (
-        <div className="p-3 rounded-md bg-red-950/40 border border-red-800 text-red-300 text-xs flex items-center space-x-2">
-          <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+        <div className="mb-4 p-3 rounded-lg bg-rose-950/40 border border-rose-800/60 text-rose-300 text-xs flex items-center space-x-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
           <span>{errorMessage}</span>
         </div>
       )}
 
-      {/* Drag & Drop Zone */}
-      <div
-        onDragOver={onDragOver}
-        onDragLeave={onDragLeave}
-        onDrop={onDrop}
-        onClick={() => fileInputRef.current && fileInputRef.current.click()}
-        className={`border-2 border-dashed rounded-lg p-8 flex flex-col items-center justify-center cursor-pointer transition-colors ${
-          dragActive
-            ? 'border-blue-500 bg-blue-950/20'
-            : 'border-[#2a2e39] bg-[#161920] hover:border-slate-500'
-        }`}
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          multiple
-          accept=".jpg,.jpeg,.png,.webp"
-          onChange={(e) => {
-            if (e.target.files && e.target.files.length > 0) {
-              handleFiles(e.target.files);
-            }
-            e.target.value = '';
-          }}
-          className="hidden"
-        />
-
-        <UploadCloud className="w-10 h-10 text-blue-500 mb-3" />
-        <p className="text-sm font-semibold text-slate-200">
-          Drop photographs here or <span className="text-blue-400 underline">browse files</span>
-        </p>
-        <p className="text-xs text-slate-400 mt-1 font-mono">
-          Supports JPG, PNG, WEBP · Up to 50MB per photograph
-        </p>
-      </div>
-
-      {/* Staged Upload Files */}
+      {/* Staged File List matching Image 3 */}
       {selectedFiles.length > 0 && (
-        <div className="bg-[#161920] border border-[#2a2e39] rounded-lg p-4 space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-200">
-              Selected Files ({selectedFiles.length})
-            </span>
-
-            <button
-              onClick={handleUpload}
-              disabled={isUploading}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-medium transition-colors disabled:opacity-50"
+        <div className="space-y-2 max-h-52 overflow-y-auto mb-4 pr-1">
+          {selectedFiles.map((item) => (
+            <div
+              key={item.id}
+              className="rounded-lg p-2.5 bg-zinc-900/80 border border-zinc-800 flex items-center justify-between text-xs"
             >
-              {isUploading ? `Uploading ${uploadProgress}%...` : `Upload ${selectedFiles.length} Photographs`}
-            </button>
-          </div>
-
-          {isUploading && (
-            <div className="w-full bg-[#0f1115] h-1.5 rounded-full overflow-hidden border border-[#2a2e39]">
-              <div
-                className="bg-blue-500 h-full transition-all duration-200"
-                style={{ width: `${uploadProgress}%` }}
-              />
-            </div>
-          )}
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2.5 max-h-56 overflow-y-auto pr-1">
-            {selectedFiles.map((item) => (
-              <div key={item.id} className="relative group border border-[#2a2e39] rounded bg-[#0f1115] overflow-hidden">
-                <img src={item.preview} alt={item.file.name} className="w-full h-20 object-cover" />
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRemoveFile(item.id);
-                  }}
-                  className="absolute top-1 right-1 p-0.5 rounded bg-black/70 hover:bg-red-600 text-slate-300 transition-colors"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-                <div className="p-1 text-[10px] text-slate-400 font-mono truncate" title={item.file.name}>
-                  {item.file.name}
+              <div className="flex items-center space-x-3 min-w-0">
+                <div className="w-8 h-8 rounded bg-zinc-800 border border-zinc-700/60 flex items-center justify-center text-zinc-400 shrink-0">
+                  <FileImage className="w-4 h-4 text-zinc-300" />
+                </div>
+                <div className="min-w-0">
+                  <div className="font-medium text-zinc-200 truncate max-w-[240px]">
+                    {item.file.name}
+                  </div>
+                  <div className="text-[11px] font-mono text-zinc-500">
+                    {item.sizeStr} • {isUploading ? `${uploadProgress}%` : 'Ready'}
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
+
+              <div className="flex items-center space-x-2">
+                {isUploading ? (
+                  <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+                ) : (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                )}
+                <button
+                  type="button"
+                  onClick={() => handleRemoveFile(item.id)}
+                  disabled={isUploading}
+                  className="text-zinc-500 hover:text-rose-400 transition-colors p-1"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
+
+      {/* Footer Actions matching Image 3 */}
+      <div className="flex items-center justify-end space-x-2 pt-3 border-t border-zinc-800">
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isUploading}
+            className="btn-secondary px-4 py-1.5 text-xs"
+          >
+            Cancel
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={handleUpload}
+          disabled={selectedFiles.length === 0 || isUploading}
+          className="btn-primary px-4 py-1.5 text-xs disabled:opacity-50 flex items-center space-x-2"
+        >
+          {isUploading ? (
+            <>
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <span>Uploading {uploadProgress}%</span>
+            </>
+          ) : (
+            <span>Upload ({selectedFiles.length})</span>
+          )}
+        </button>
+      </div>
     </div>
   );
 }

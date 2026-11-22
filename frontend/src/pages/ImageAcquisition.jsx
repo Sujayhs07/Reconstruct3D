@@ -4,11 +4,7 @@ import {
   UploadCloud,
   Camera,
   Trash2,
-  AlertTriangle,
-  CheckCircle2,
   ArrowRight,
-  Eye,
-  Sliders,
   Image as ImageIcon
 } from 'lucide-react';
 import DropzoneUpload from '../components/DropzoneUpload';
@@ -57,35 +53,35 @@ export default function ImageAcquisition() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 select-none">
       {/* Acquisition Tabs */}
-      <div className="flex items-center space-x-2 border-b border-[#2a2e39] pb-3">
+      <div className="flex items-center space-x-2">
         <button
           onClick={() => setActiveTab('upload')}
-          className={`flex items-center space-x-2 px-4 py-2 rounded-md text-xs font-semibold transition-colors ${
+          className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
             activeTab === 'upload'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'bg-[#161920] text-slate-400 hover:text-slate-200 border border-[#2a2e39]'
+              ? 'bg-zinc-800 text-zinc-100 border border-zinc-700/60 shadow-sm'
+              : 'bg-zinc-900/60 text-zinc-400 hover:text-zinc-200 border border-zinc-800'
           }`}
         >
-          <UploadCloud className="w-4 h-4" />
+          <UploadCloud className="w-3.5 h-3.5" />
           <span>Upload Image Files</span>
         </button>
 
         <button
           onClick={() => setActiveTab('webcam')}
-          className={`flex items-center space-x-2 px-4 py-2 rounded-md text-xs font-semibold transition-colors ${
+          className={`flex items-center space-x-2 px-3.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
             activeTab === 'webcam'
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'bg-[#161920] text-slate-400 hover:text-slate-200 border border-[#2a2e39]'
+              ? 'bg-zinc-800 text-zinc-100 border border-zinc-700/60 shadow-sm'
+              : 'bg-zinc-900/60 text-zinc-400 hover:text-zinc-200 border border-zinc-800'
           }`}
         >
-          <Camera className="w-4 h-4" />
-          <span>Live Webcam Capture</span>
+          <Camera className="w-3.5 h-3.5" />
+          <span>Live Camera Capture</span>
         </button>
       </div>
 
-      {/* Tab Panels */}
+      {/* Tab Content */}
       {activeTab === 'upload' ? (
         <DropzoneUpload projectId={id} onImagesUploaded={handleImagesAdded} />
       ) : (
@@ -93,98 +89,64 @@ export default function ImageAcquisition() {
       )}
 
       {/* Project Image Gallery */}
-      <div className="bg-[#161920] border border-[#2a2e39] rounded-lg p-5 space-y-4">
-        <div className="flex items-center justify-between border-b border-[#2a2e39] pb-3">
+      <div className="rounded-xl surface-panel border border-white/[0.08] p-5 space-y-4">
+        <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
           <div>
-            <h3 className="text-sm font-semibold text-slate-100 flex items-center space-x-2">
-              <ImageIcon className="w-4 h-4 text-blue-400" />
+            <h3 className="text-sm font-semibold text-zinc-100 flex items-center space-x-2 m-0 tracking-tight">
+              <ImageIcon className="w-4 h-4 text-zinc-400" />
               <span>Project Photographs ({images.length})</span>
             </h3>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Verified photographs saved in project source repository with OpenCV quality metrics.
+            <p className="text-xs text-zinc-400 mt-0.5">
+              Images captured and validated for SIFT feature matching and COLMAP SfM triangulation.
             </p>
           </div>
 
-          {images.length >= 2 && (
+          {images.length >= 4 && (
             <button
               onClick={() => navigate(`/projects/${id}/analysis`)}
-              className="flex items-center space-x-1.5 px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-semibold tracking-wide transition-colors shadow-sm"
+              className="btn-primary px-3.5 py-1.5 text-xs flex items-center space-x-1.5"
             >
-              <span>Analyze Quality</span>
+              <span>Analyze Quality & SIFT</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
 
-        {loading ? (
-          <div className="p-8 text-center text-slate-500 text-xs font-mono">Loading images...</div>
-        ) : images.length === 0 ? (
-          <div className="p-8 text-center text-slate-500 text-xs space-y-1">
-            <p>No photographs in this project yet.</p>
-            <p className="text-[11px] text-slate-600">Upload or capture overlapping photos above.</p>
+        {images.length === 0 ? (
+          <div className="text-center py-12 text-zinc-500 font-mono text-xs">
+            No photographs uploaded yet. Drag & drop image files above or use live camera capture.
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3.5">
-            {images.map((img) => {
-              const hasWarning = img.is_blurry || img.is_dark || img.is_low_res || img.is_duplicate;
-              return (
-                <div
-                  key={img.id}
-                  className={`group relative rounded-lg border bg-[#0f1115] overflow-hidden flex flex-col justify-between transition-colors ${
-                    hasWarning ? 'border-amber-600/50 hover:border-amber-500' : 'border-[#2a2e39] hover:border-slate-500'
-                  }`}
-                >
-                  <div className="relative aspect-square overflow-hidden bg-black">
-                    <img
-                      src={img.file_path}
-                      alt={img.original_filename}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                    />
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {images.map((img) => (
+              <div
+                key={img.id}
+                className="group relative rounded-lg overflow-hidden border border-zinc-800 bg-zinc-950 aspect-square flex flex-col justify-between"
+              >
+                <img
+                  src={img.file_path}
+                  alt={img.filename}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                />
 
-                    {/* Warning icon overlay */}
-                    {hasWarning && (
-                      <div
-                        className="absolute top-1.5 left-1.5 p-1 rounded bg-amber-950/90 text-amber-300 border border-amber-700/60"
-                        title={img.warning_reason}
-                      >
-                        <AlertTriangle className="w-3.5 h-3.5" />
-                      </div>
-                    )}
-
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-2 flex flex-col justify-between">
+                  <div className="flex justify-end">
                     <button
                       onClick={() => handleDeleteImage(img.id)}
-                      className="absolute top-1.5 right-1.5 p-1 rounded bg-black/70 hover:bg-red-600 text-slate-300 hover:text-white transition-colors opacity-0 group-hover:opacity-100"
-                      title="Delete image"
+                      className="p-1 rounded bg-rose-950/80 text-rose-300 hover:text-white hover:bg-rose-800 transition-colors"
+                      title="Delete photograph"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
 
-                  <div className="p-2 space-y-1">
-                    <p className="text-[11px] font-mono font-medium text-slate-200 truncate" title={img.original_filename}>
-                      {img.original_filename}
-                    </p>
-
-                    <div className="flex items-center justify-between text-[10px] font-mono text-slate-500">
-                      <span>{img.width}x{img.height}</span>
-                      <span>{Math.round(img.file_size / 1024)} KB</span>
-                    </div>
-
-                    <div className="flex items-center justify-between text-[10px] font-mono pt-1 border-t border-[#1e222b]">
-                      <span className={img.is_blurry ? 'text-amber-400' : 'text-slate-400'} title="Laplacian Sharpness">
-                        L: {Math.round(img.sharpness)}
-                      </span>
-                      <span className={img.is_dark ? 'text-amber-400' : 'text-slate-400'} title="Average Brightness">
-                        B: {Math.round(img.avg_brightness)}
-                      </span>
-                      <span className="text-blue-400" title="SIFT Keypoints">
-                        {img.keypoint_count} kp
-                      </span>
-                    </div>
+                  <div className="text-[10px] font-mono text-zinc-300 truncate">
+                    <div className="font-medium truncate text-white">{img.filename}</div>
+                    <div className="text-zinc-400">{img.width}x{img.height} • {Math.round(img.file_size / 1024)} KB</div>
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )}
       </div>
