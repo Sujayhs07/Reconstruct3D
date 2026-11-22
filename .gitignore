@@ -71,3 +71,9 @@ htmlcov/
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Agent and IDE internal metadata
+.agent/
+.agents/
+.gemini/
+.gsd/

@@ -385,10 +385,17 @@ export default function Viewer3D({
       {/* R3F Canvas */}
       <div className="flex-1 w-full h-full">
         <Canvas
+          dpr={[1, 2]}
           camera={{ position: [0, 2, 5], fov: 45 }}
-          gl={{ antialias: true, alpha: false }}
+          gl={{
+            antialias: true,
+            alpha: false,
+            powerPreference: 'high-performance'
+          }}
           onCreated={({ gl }) => {
             gl.setClearColor('#0a0c10');
+            gl.toneMapping = THREE.ACESFilmicToneMapping;
+            gl.toneMappingExposure = 1.0;
           }}
         >
           <ambientLight intensity={lightIntensity * 0.6} />
