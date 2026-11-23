@@ -6,7 +6,8 @@ from sqlalchemy import func, case
 from backend.database import get_db
 from backend.models import Project, ProjectImage, ReconstructionArtifact
 from backend.schemas import ProjectCreate, ProjectResponse, ProjectDetailResponse
-from backend.services.file_service import init_project_directories, get_project_dir
+from backend.services.file_service import init_project_directories, get_project_dir, SAFE_PROJECT_ID_REGEX
+from backend.config import settings
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
@@ -66,6 +67,23 @@ def get_stats_summary(db: Session = Depends(get_db)):
 def get_project(project_id: str, db: Session = Depends(get_db)):
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
+        # Check if project folder exists on disk (e.g. from prior runs before container reboot)
+        if SAFE_PROJECT_ID_REGEX.match(project_id) and project_id not in {".", ".."}:
+            target_dir = settings.PROJECTS_DIR / project_id
+            if target_dir.exists():
+                dirs = init_project_directories(project_id)
+                n_imgs = len(list(dirs["source_images"].glob("*.*"))) if dirs["source_images"].exists() else 0
+                project = Project(
+                    id=project_id,
+                    name=f"Project {project_id[:8]}",
+                    description="Restored photogrammetry project",
+                    status="ready" if n_imgs > 0 else "created",
+                    image_count=n_imgs
+                )
+                db.add(project)
+                db.commit()
+                db.refresh(project)
+                return project
         raise HTTPException(status_code=404, detail="Project not found")
     return project
 

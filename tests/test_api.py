@@ -115,3 +115,26 @@ def test_high_res_image_upload_memory_safe():
 
     # Cleanup test project
     client.delete(f"/api/projects/{proj_id}")
+
+def test_upload_to_missing_project_self_heals():
+    # Verify that uploading to an unseeded/rebooted project ID self-heals instead of failing with 404
+    missing_id = "reboot-recovery-proj-123"
+    img = np.zeros((480, 640, 3), dtype=np.uint8)
+    cv2.circle(img, (320, 240), 50, (200, 200, 200), -1)
+    _, enc = cv2.imencode(".jpg", img)
+    files = [
+        ("files", ("photo.jpg", io.BytesIO(enc.tobytes()), "image/jpeg"))
+    ]
+    resp = client.post(f"/api/projects/{missing_id}/images", files=files)
+    assert resp.status_code == 201
+    data = resp.json()
+    assert len(data) == 1
+    assert data[0]["project_id"] == missing_id
+
+    # Verify project was automatically created in database
+    proj_resp = client.get(f"/api/projects/{missing_id}")
+    assert proj_resp.status_code == 200
+    assert proj_resp.json()["id"] == missing_id
+
+    # Cleanup
+    client.delete(f"/api/projects/{missing_id}")

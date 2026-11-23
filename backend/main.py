@@ -22,6 +22,33 @@ from backend.routers import (
 # Initialize SQLite database schema
 Base.metadata.create_all(bind=engine)
 
+# Startup project sync: restore projects from storage/projects if container restarted
+def sync_storage_projects():
+    from sqlalchemy.orm import Session
+    from backend.models import Project
+    from backend.services.file_service import SAFE_PROJECT_ID_REGEX
+    try:
+        with Session(engine) as db:
+            if settings.PROJECTS_DIR.exists():
+                existing_ids = {p.id for p in db.query(Project.id).all()}
+                for p_dir in settings.PROJECTS_DIR.iterdir():
+                    if p_dir.is_dir() and SAFE_PROJECT_ID_REGEX.match(p_dir.name) and p_dir.name not in existing_ids:
+                        src_dir = p_dir / "source_images"
+                        n_imgs = len(list(src_dir.glob("*.*"))) if src_dir.exists() else 0
+                        proj = Project(
+                            id=p_dir.name,
+                            name=f"Project {p_dir.name[:8]}",
+                            description="Restored workspace from storage",
+                            status="ready" if n_imgs > 0 else "created",
+                            image_count=n_imgs
+                        )
+                        db.add(proj)
+                db.commit()
+    except Exception:
+        pass
+
+sync_storage_projects()
+
 def get_lan_ip() -> str:
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

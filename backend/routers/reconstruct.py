@@ -8,7 +8,7 @@ from backend.models import Project, ReconstructionLog
 from backend.schemas import ReconstructionStartRequest, ReconstructionLogResponse
 from backend.services.job_manager import job_manager
 from backend.services.colmap_service import ColmapService
-from backend.services.file_service import init_project_directories
+from backend.services.file_service import init_project_directories, SAFE_PROJECT_ID_REGEX
 
 router = APIRouter(prefix="/api/projects/{project_id}", tags=["reconstruction"])
 
@@ -57,7 +57,13 @@ def cancel_reconstruction(project_id: str, db: Session = Depends(get_db)):
 def get_reconstruction_status(project_id: str, db: Session = Depends(get_db)):
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        if SAFE_PROJECT_ID_REGEX.match(project_id) and project_id not in {".", ".."}:
+            project = Project(id=project_id, name=f"Project {project_id[:8]}", status="created")
+            db.add(project)
+            db.commit()
+            db.refresh(project)
+        else:
+            raise HTTPException(status_code=404, detail="Project not found")
 
     is_running = job_manager.is_running(project_id)
 

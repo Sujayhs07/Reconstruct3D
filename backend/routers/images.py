@@ -14,7 +14,8 @@ from backend.services.file_service import (
     init_project_directories,
     calculate_file_hash,
     is_allowed_file,
-    get_relative_url
+    get_relative_url,
+    SAFE_PROJECT_ID_REGEX
 )
 
 router = APIRouter(prefix="/api/projects/{project_id}/images", tags=["images"])
@@ -27,7 +28,20 @@ def upload_images(
 ):
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        # Container restart resilience: automatically create project if missing so uploads never fail
+        if SAFE_PROJECT_ID_REGEX.match(project_id) and project_id not in {".", ".."}:
+            project = Project(
+                id=project_id,
+                name=f"Project {project_id[:8]}",
+                description="Active photogrammetry project",
+                status="created",
+                active_stage="idle"
+            )
+            db.add(project)
+            db.commit()
+            db.refresh(project)
+        else:
+            raise HTTPException(status_code=404, detail="Project not found")
 
     dirs = init_project_directories(project_id)
     uploaded_images: List[ProjectImage] = []
@@ -174,7 +188,20 @@ def upload_images(
 def get_project_images(project_id: str, db: Session = Depends(get_db)):
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+        if SAFE_PROJECT_ID_REGEX.match(project_id) and project_id not in {".", ".."}:
+            project = Project(
+                id=project_id,
+                name=f"Project {project_id[:8]}",
+                description="Active photogrammetry project",
+                status="created",
+                active_stage="idle"
+            )
+            db.add(project)
+            db.commit()
+            db.refresh(project)
+            init_project_directories(project_id)
+        else:
+            raise HTTPException(status_code=404, detail="Project not found")
 
     images = db.query(ProjectImage).filter(ProjectImage.project_id == project_id).order_by(ProjectImage.uploaded_at.asc()).all()
     return images

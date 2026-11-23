@@ -74,6 +74,10 @@ export default function DropzoneUpload({ projectId, onImagesUploaded, onClose })
 
   const handleUpload = async () => {
     if (selectedFiles.length === 0 || isUploading) return;
+    if (!projectId) {
+      setErrorMessage('Active project ID is missing. Please return to the dashboard and create or open a project.');
+      return;
+    }
     setIsUploading(true);
     setUploadProgress(15);
     setErrorMessage(null);
@@ -101,7 +105,11 @@ export default function DropzoneUpload({ projectId, onImagesUploaded, onClose })
       }
     } catch (err) {
       console.error('Upload error:', err);
-      setErrorMessage(err.response?.data?.detail || err.message || 'Upload failed.');
+      if (err.response?.status === 404) {
+        setErrorMessage('Project workspace was not found on the server. Please return to the Dashboard and create a new project.');
+      } else {
+        setErrorMessage(err.response?.data?.detail || err.message || 'Upload failed.');
+      }
     } finally {
       setIsUploading(false);
     }

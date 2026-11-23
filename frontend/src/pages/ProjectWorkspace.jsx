@@ -7,7 +7,8 @@ import {
   Box,
   Layers,
   ArrowLeft,
-  Trash2
+  Trash2,
+  AlertCircle
 } from 'lucide-react';
 import { getProject, deleteProject } from '../api/client';
 
@@ -68,9 +69,24 @@ export default function ProjectWorkspace() {
 
   if (!project) {
     return (
-      <div className="p-12 text-center space-y-3">
-        <p className="text-zinc-300 text-sm">Project not found.</p>
-        <Link to="/" className="text-blue-400 text-xs hover:underline">Return to Dashboard</Link>
+      <div className="p-12 text-center space-y-4 max-w-md mx-auto">
+        <div className="w-12 h-12 rounded-full bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto text-zinc-400">
+          <AlertCircle className="w-6 h-6 text-amber-400" />
+        </div>
+        <div className="space-y-1">
+          <h3 className="text-sm font-semibold text-zinc-100">Project Not Found</h3>
+          <p className="text-xs text-zinc-400 leading-relaxed">
+            This project session may have expired or the cloud container was restarted. You can start a fresh project with one click.
+          </p>
+        </div>
+        <div className="pt-2 flex justify-center gap-3">
+          <Link to="/new" className="btn-primary px-4 py-2 text-xs">
+            Create New Project
+          </Link>
+          <Link to="/" className="btn-secondary px-4 py-2 text-xs">
+            Return to Dashboard
+          </Link>
+        </div>
       </div>
     );
   }
