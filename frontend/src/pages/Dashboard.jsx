@@ -1,3 +1,18 @@
+/**
+ * Dashboard & Workspace Overview Page
+ * -----------------------------------
+ * Why this matters:
+ * The Dashboard is the primary entrypoint for users upon launching the application:
+ * 1. Global Metrics: Displays aggregate statistics across all projects (total scans,
+ *    reconstructed 3D point cloud volumes, meshes, and images processed).
+ * 2. Active Projects Grid: Lists all existing projects with status indicators (completed,
+ *    in-progress, created) and quick-action links.
+ * 3. 3D Hero Scene: Renders an interactive Three.js stylized classical temple / architectural
+ *    point cloud mesh in the header to demonstrate the platform's visual capability.
+ * 4. Empty-State Guidance: When zero projects exist, guides the user cleanly with a prominent
+ *    "Create First Project" call-to-action.
+ */
+
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {

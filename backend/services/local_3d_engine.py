@@ -1,3 +1,30 @@
+"""
+Local 3D Reconstruction Engine (Pure Python / CPU)
+--------------------------------------------------
+Why this matters:
+Traditional photogrammetry (COLMAP) requires 20-50 overlapping images and heavy GPU/RAM
+resources. For casual users, mobile captures, or quick 1-4 photo object scans (like bottles,
+vases, shoes, cups), this engine provides an instant, 100% offline, zero-dependency alternative:
+
+How it works:
+1. Contrast & Deblurring Enhancement:
+   - Converts image to LAB color space and applies CLAHE (Contrast Limited Adaptive Histogram
+     Equalization) to the L-channel to reveal faint boundaries and labels.
+   - Applies unsharp masking to sharpen soft smartphone/webcam edges.
+2. Silhouette & Visual Hull Segmentation:
+   - Uses Gemini Vision visual grounding bounding box (if available) or central saliency cropping.
+   - Combines Canny edge detection with Otsu thresholding to segment transparent and reflective edges.
+   - Extracts vertical radius profiles from multiple viewing angles.
+3. Radial Slicing & Watertight 3D Mesh Synthesis:
+   - Discretizes the object height into horizontal circular/elliptical rings.
+   - Generates indexed triangle fans and side quads with correct winding order to ensure
+     a clean, non-manifold, watertight solid mesh.
+4. UV Coordinate Mapping & Texture Baking:
+   - Computes cylindrical UV coordinates and maps the original photograph directly onto the mesh.
+5. GLB / PLY Export:
+   - Exports both GLB (with embedded PBR material for Three.js & Mobile AR) and PLY point cloud formats.
+"""
+
 import os
 import cv2
 import math

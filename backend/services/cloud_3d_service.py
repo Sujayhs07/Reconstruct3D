@@ -1,3 +1,24 @@
+"""
+Cloud 3D Reconstruction Service
+-------------------------------
+Why this matters:
+Running full Structure-from-Motion (SfM) + Poisson surface reconstruction on a lightweight
+server or mobile device can take significant time or exceed 512MB RAM constraints.
+This service provides an intelligent, multi-tiered cloud AI pipeline:
+
+1. Hugging Face Spaces (TripoSR / Image-to-3D):
+   - 100% Free, zero-credit neural mesh generation.
+   - Converts primary photograph into a 3D GLB mesh using deep implicit representations.
+2. Meshy.ai Cloud 3D Engine:
+   - High-fidelity single-image to textured 3D mesh generator.
+   - Includes automatic image downsampling (>1536px scaled down) to keep base64 payloads
+     under 2MB and prevent HTTP request timeouts.
+   - Polls task status asynchronously with exponential backoff and timeout safeguards.
+3. Fallback to Local CPU Engine:
+   - If cloud keys are not configured or external APIs are unreachable, automatically
+     falls back to the local pure-CPU visual hull engine.
+"""
+
 import os
 import time
 import base64

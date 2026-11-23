@@ -1,3 +1,19 @@
+"""
+Image Acquisition & Management Router
+-------------------------------------
+Why this matters:
+Photogrammetry fundamentally depends on the geometric and photometric quality
+of the input photographs. This router provides:
+1. Resilient Chunked Uploads: Streams files to disk in 64 KB buffers instead of reading
+   entire 20-50MB photos into memory, preventing Out-Of-Memory (OOM) crashes on 512MB RAM servers.
+2. Self-Healing Auto-Provisioning: If a project ID is received that was lost during a cold container
+   restart, automatically registers the project in SQLite so the upload succeeds seamlessly.
+3. Cryptographic Deduplication: Calculates SHA-256 hashes during streaming to detect duplicate
+   photos that waste processing time and distort Structure-from-Motion bundle adjustment.
+4. Computer Vision Quality Pre-Checks: Measures Laplacian variance for motion blur,
+   average pixel intensity for underexposure, and counts initial SIFT keypoints.
+"""
+
 import os
 import gc
 import uuid

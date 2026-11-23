@@ -1,3 +1,22 @@
+/**
+ * Axios HTTP & WebSocket API Client
+ * ---------------------------------
+ * Why this matters:
+ * This module is the single source of truth for all network communication between
+ * the React frontend and the FastAPI backend.
+ * 
+ * Key architectural features:
+ * 1. Base URL Flexibility:
+ *    - Defaults to `/api` (for local dev proxy or single-server Render deployments).
+ *    - Supports `VITE_API_BASE_URL` override if the frontend is hosted on Vercel
+ *      and the backend is on Render.
+ * 2. Dynamic WebSocket Protocol Resolution:
+ *    - Automatically picks `wss://` on HTTPS sites (production) and `ws://` on HTTP (localhost).
+ *    - Accurately targets the backend host regardless of port or domain differences.
+ * 3. Streamlined Endpoint Functions:
+ *    - Grouped logically by entity: Projects, Images, Diagnostics, Reconstruction, 3D Models, Settings.
+ */
+
 import axios from 'axios';
 
 const api = axios.create({

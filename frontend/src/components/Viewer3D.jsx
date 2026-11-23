@@ -1,3 +1,27 @@
+/**
+ * Interactive 3D WebGL Model & Point Cloud Viewer
+ * ------------------------------------------------
+ * Why this matters:
+ * Inspecting 3D reconstruction results in real-time requires rendering both dense
+ * point clouds (PLY format) and textured meshes (PLY and GLB formats) directly
+ * in the browser at 60 FPS using Three.js and React Three Fiber (@react-three/fiber).
+ * 
+ * Key engineering details:
+ * 1. Format Agnostic Rendering:
+ *    - PLYModel: Parses binary and ASCII Stanford PLY files. Ensures vertex position
+ *      and normal attribute arrays are valid Float32Arrays as mandated by WebGL.
+ *      Computes smooth vertex normals dynamically if missing.
+ *    - GLBModel: Loads modern glTF/GLB models with embedded PBR textures.
+ * 2. GPU Memory Management & Anti-Leak:
+ *    - Three.js WebGL objects (BufferGeometry, Material, Texture) are NOT garbage
+ *      collected by JavaScript alone. They must be explicitly destroyed via .dispose().
+ *    - Cleanup effects on unmount and model change purge GPU memory buffers, preventing
+ *      browser tab crashes during continuous model switching.
+ * 3. Studio Camera & Lighting Controls:
+ *    - OrbitControls with customizable damping, auto-rotation, coordinate axes,
+ *      wireframe toggle, point cloud size adjustment, and camera view presets (Top, Front, Isometric).
+ */
+
 import React, { useRef, useState, useEffect } from 'react';
 import { Canvas, useThree, useFrame } from '@react-three/fiber';
 import { OrbitControls, Grid, Center } from '@react-three/drei';

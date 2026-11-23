@@ -1,3 +1,23 @@
+/**
+ * Reconstruction Studio Control Page
+ * -----------------------------------
+ * Why this matters:
+ * This page serves as the mission control center for initiating, monitoring,
+ * and reviewing 3D reconstructions:
+ * 
+ * 1. Pipeline Stages Progress:
+ *    - Visually tracks each stage: Validation -> Feature Analysis -> SIFT Matching ->
+ *      3D Geometry Reconstruction -> Texture Mapping -> Mesh Finalization.
+ * 2. Real-Time Terminal Streaming:
+ *    - Connects to the project's WebSocket channel to stream live stdout/stderr log
+ *      messages directly into an interactive retro terminal (`<TerminalLogs />`).
+ * 3. Reconstruction Parameters:
+ *    - Allows customization of Poisson octree depth, mesh triangle decimation,
+ *      and dense cloud generation flags.
+ * 4. Cancellation & Error Recovery:
+ *    - Enables aborting in-flight worker jobs cleanly without corrupting database state.
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useOutletContext, Link } from 'react-router-dom';
 import {

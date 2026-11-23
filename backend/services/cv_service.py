@@ -1,3 +1,23 @@
+"""
+Computer Vision Diagnostics & Feature Matching Service
+------------------------------------------------------
+Why this matters:
+Feature detection and matching form the geometric backbone of photogrammetry (SfM):
+1. Image Quality Metrics:
+   - Laplacian Variance: Computes the 2nd derivative of spatial pixel intensity.
+     Smooth, motion-blurred images have low variance (<90), while crisp in-focus edges produce high variance.
+   - Brightness & Contrast: Warns against underexposed or flat lighting that hurts keypoint repeatability.
+2. SIFT (Scale-Invariant Feature Transform):
+   - Extracts scale- and rotation-invariant 128-dimensional descriptor vectors.
+   - Robust against changes in camera zoom, perspective rotation, and illumination.
+3. Feature Matching & Geometric Verification:
+   - Uses FLANN / KNN matching with k=2 nearest neighbors.
+   - Lowe's Ratio Test: Rejects ambiguous matches where d_best / d_second > 0.75.
+   - Epipolar RANSAC: Fits the Fundamental Matrix (cv2.findFundamentalMat) using RANSAC.
+     Discards geometric outliers (points violating epipolar line constraints) to ensure
+     only true physical correspondences are passed to 3D triangulation.
+"""
+
 import os
 import gc
 import shutil

@@ -1,3 +1,21 @@
+"""
+FastAPI Main Application Entrypoint
+------------------------------------
+Why this matters:
+This is the root server module that ties the entire backend system together:
+1. Database Schema Initialization: Ensures SQLite tables and indices exist on boot.
+2. Container Restart Resilience: On container cold boot (e.g. Render restart), scans
+   storage/projects and restores any existing project records in SQLite if missing.
+3. CORS Policy: Allows secure cross-origin communication between the frontend React SPA
+   (Vercel or Render) and the FastAPI backend.
+4. Safe Static Files Serving: Mounts storage/ to serve uploaded images, point clouds,
+   and meshes while explicitly blocking sensitive database (.db) files.
+5. Single-Service SPA Routing: Serves the compiled Vite production frontend directly
+   from the same port, handling client-side SPA routing (index.html fallback) for Render.
+6. Local Network Discovery: Computes the machine's local Wi-Fi / LAN IP so the Mobile AR
+   QR Code modal works seamlessly across phones on the same network.
+"""
+
 import os
 import shutil
 import socket
@@ -24,6 +42,11 @@ Base.metadata.create_all(bind=engine)
 
 # Startup project sync: restore projects from storage/projects if container restarted
 def sync_storage_projects():
+    """
+    On cold restart in ephemeral cloud environments (like Render free tier), the SQLite
+    file might reset while files on disk persist, or vice-versa.
+    This scans storage/projects to re-register any physical project directories into SQLite.
+    """
     from sqlalchemy.orm import Session
     from backend.models import Project
     from backend.services.file_service import SAFE_PROJECT_ID_REGEX
@@ -50,6 +73,10 @@ def sync_storage_projects():
 sync_storage_projects()
 
 def get_lan_ip() -> str:
+    """
+    Detects the machine's local Wi-Fi/LAN IP address via UDP socket probe (non-blocking).
+    Used by MobileARModal so scanning the QR code on a smartphone opens the local server.
+    """
     try:
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         s.connect(("8.8.8.8", 80))

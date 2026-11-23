@@ -1,3 +1,24 @@
+/**
+ * Mobile Augmented Reality (AR) QR Code Modal
+ * --------------------------------------------
+ * Why this matters:
+ * Experiencing reconstructed 3D assets in true physical space through mobile AR
+ * creates an impressive, tangible demo for presentations and real-world evaluation.
+ * 
+ * How it works:
+ * 1. Network Discovery:
+ *    - If running locally (e.g. localhost:5173 or localhost:8000), a mobile phone scanning
+ *      the QR code cannot reach "localhost". This component queries `/api/network-info`
+ *      to get the computer's actual Wi-Fi LAN IP (e.g. 192.168.1.15), substituting it into
+ *      the URL so any phone connected to the same Wi-Fi can view the model instantly.
+ * 2. Mobile AR Handoff:
+ *    - Points to the `/ar/:projectId` route, which uses Google's `<model-viewer>`:
+ *      * On iOS: launches Quick Look (.usdz / SceneKit AR) natively without installing apps.
+ *      * On Android: launches Google Scene Viewer via WebXR directly through the camera.
+ * 3. Dynamic QR Code Rendering:
+ *    - Uses `qrcode` library to render crisp SVG/canvas QR codes with instant copy-link capabilities.
+ */
+
 import React, { useState, useEffect } from 'react';
 import QRCode from 'qrcode';
 import {
