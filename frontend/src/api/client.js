@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -56,6 +56,12 @@ export const testMeshyApiKey = () => api.post('/settings/test-meshy');
 
 // WebSocket URL
 export const getProjectWsUrl = (projectId) => {
+  const customBase = import.meta.env.VITE_API_BASE_URL;
+  if (customBase && customBase.startsWith('http')) {
+    const wsProto = customBase.startsWith('https') ? 'wss:' : 'ws:';
+    const host = new URL(customBase).host;
+    return `${wsProto}//${host}/ws/projects/${projectId}`;
+  }
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const host = window.location.host;
   return `${protocol}//${host}/ws/projects/${projectId}`;

@@ -241,8 +241,21 @@ class Meshy3DService:
         mime = "image/png" if ext == "png" else "image/jpeg"
 
         try:
-            with open(primary_image, "rb") as f:
-                b64_img = base64.b64encode(f.read()).decode("utf-8")
+            import cv2
+            img = cv2.imread(str(primary_image))
+            if img is not None:
+                h, w = img.shape[:2]
+                if max(h, w) > 1536:
+                    scale = 1536.0 / float(max(h, w))
+                    img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
+                _, enc = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 90])
+                del img
+                b64_img = base64.b64encode(enc.tobytes()).decode("utf-8")
+                del enc
+                mime = "image/jpeg"
+            else:
+                with open(primary_image, "rb") as f:
+                    b64_img = base64.b64encode(f.read()).decode("utf-8")
             data_uri = f"data:{mime};base64,{b64_img}"
 
             headers = {

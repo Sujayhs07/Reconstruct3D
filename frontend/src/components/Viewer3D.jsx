@@ -26,11 +26,16 @@ function PLYModel({ url, isPointCloud, pointSize, wireframe, color, onLoaded }) 
 
   useEffect(() => {
     let active = true;
+    let loadedGeo = null;
     const loader = new PLYLoader();
     loader.load(
       url,
       (geo) => {
-        if (!active) return;
+        if (!active) {
+          geo.dispose();
+          return;
+        }
+        loadedGeo = geo;
         // WebGL requires Float32Array for position and normal attribute buffers
         if (geo.attributes.position && !(geo.attributes.position.array instanceof Float32Array)) {
           geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array(geo.attributes.position.array), geo.attributes.position.itemSize));
@@ -61,6 +66,9 @@ function PLYModel({ url, isPointCloud, pointSize, wireframe, color, onLoaded }) 
     );
     return () => {
       active = false;
+      if (loadedGeo) {
+        loadedGeo.dispose();
+      }
     };
   }, [url]);
 
@@ -98,11 +106,24 @@ function GLBModel({ url, wireframe, onLoaded }) {
 
   useEffect(() => {
     let active = true;
+    let loadedScene = null;
     const loader = new GLTFLoader();
     loader.load(
       url,
       (gltf) => {
-        if (!active) return;
+        if (!active) {
+          gltf.scene.traverse((child) => {
+            if (child.isMesh) {
+              if (child.geometry) child.geometry.dispose();
+              if (child.material) {
+                if (Array.isArray(child.material)) child.material.forEach((m) => m.dispose());
+                else child.material.dispose();
+              }
+            }
+          });
+          return;
+        }
+        loadedScene = gltf.scene;
         let vCount = 0;
         let fCount = 0;
         gltf.scene.traverse((child) => {
@@ -127,6 +148,17 @@ function GLBModel({ url, wireframe, onLoaded }) {
     );
     return () => {
       active = false;
+      if (loadedScene) {
+        loadedScene.traverse((child) => {
+          if (child.isMesh) {
+            if (child.geometry) child.geometry.dispose();
+            if (child.material) {
+              if (Array.isArray(child.material)) child.material.forEach((m) => m.dispose());
+              else child.material.dispose();
+            }
+          }
+        });
+      }
     };
   }, [url]);
 

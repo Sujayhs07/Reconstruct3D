@@ -22,9 +22,9 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [stats, setStats] = useState({
-    total_projects: 4,
+    total_projects: 0,
     completed_projects: 0,
-    total_images: 12,
+    total_images: 0,
     total_reconstructed_points: 0,
     total_meshes_generated: 0
   });
@@ -137,7 +137,7 @@ export default function Dashboard() {
             </div>
             <div>
               <div className="text-xl font-bold font-mono text-zinc-100">
-                {stats.total_projects ?? 4}
+                {stats.total_projects ?? 0}
               </div>
               <div className="text-xs text-zinc-400 font-medium">
                 Total Projects
@@ -145,7 +145,7 @@ export default function Dashboard() {
             </div>
           </div>
           <div className="self-start text-[10px] font-mono text-emerald-400 font-medium px-1.5 py-0.5 rounded bg-emerald-950/40 border border-emerald-800/40">
-            ↑ +1
+            Active
           </div>
         </div>
 
@@ -157,7 +157,7 @@ export default function Dashboard() {
             </div>
             <div>
               <div className="text-xl font-bold font-mono text-zinc-100">
-                {stats.total_images ?? 12}
+                {stats.total_images ?? 0}
               </div>
               <div className="text-xs text-zinc-400 font-medium">
                 Photographs
@@ -231,7 +231,7 @@ export default function Dashboard() {
 
         {/* Grid of Projects */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {projects.slice(0, 3).map((project) => (
+          {projects.slice(0, 6).map((project) => (
             <div
               key={project.id}
               className="surface-card p-4 flex flex-col justify-between group"
@@ -290,7 +290,7 @@ export default function Dashboard() {
                 </div>
 
                 <Link
-                  to={`/projects/${project.id}/reconstruct`}
+                  to={`/projects/${project.id}/images`}
                   className="btn-secondary px-3 py-1 text-xs"
                 >
                   <span>Open →</span>
@@ -299,87 +299,28 @@ export default function Dashboard() {
             </div>
           ))}
 
-          {/* Fallback default sample cards if zero projects loaded */}
+          {/* Clean Empty State when zero projects exist */}
           {projects.length === 0 && (
-            <>
-              <div className="surface-card p-4 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-semibold text-sm text-zinc-100">bootle</h3>
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono bg-rose-950/60 text-rose-300 border border-rose-800/60">Failed</span>
-                  </div>
-                  <div className="flex gap-3 items-center mb-4">
-                    <div className="w-18 h-18 rounded-lg bg-zinc-950 border border-zinc-800 overflow-hidden shrink-0 flex items-center justify-center">
-                      <Box className="w-6 h-6 text-zinc-600" />
-                    </div>
-                    <div className="flex-1 space-y-2">
-                      <p className="text-[11px] text-zinc-400">No description provided.</p>
-                      <div className="grid grid-cols-3 gap-1 text-[10px] font-mono text-zinc-400">
-                        <div><span className="block text-zinc-500">PHOTOS</span><span className="text-zinc-200">4</span></div>
-                        <div><span className="block text-zinc-500">POINTS</span><span className="text-zinc-200">0</span></div>
-                        <div><span className="block text-zinc-500">MESH TRIS</span><span className="text-zinc-200">0</span></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between pt-3 border-t border-zinc-800/80 text-xs">
-                  <span className="text-zinc-500 font-mono text-[11px]">11/17/2026</span>
-                  <Link to="/new" className="btn-secondary px-3 py-1 text-xs">Open →</Link>
-                </div>
+            <div className="col-span-full rounded-xl surface-card p-8 sm:p-12 text-center space-y-4 border border-dashed border-zinc-800/80">
+              <div className="w-12 h-12 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto text-zinc-400">
+                <Box className="w-6 h-6 text-blue-400" />
               </div>
-
-              <div className="surface-card p-4 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-semibold text-sm text-zinc-100">Test Upload Fix</h3>
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-800 text-zinc-300 border border-zinc-700/60">Created</span>
-                  </div>
-                  <div className="flex gap-3 items-center mb-4">
-                    <div className="w-18 h-18 rounded-lg bg-zinc-950 border border-zinc-800 overflow-hidden shrink-0 flex items-center justify-center">
-                      <Box className="w-6 h-6 text-zinc-600" />
-                    </div>
-                    <div className="flex-1 space-y-2">
-                      <p className="text-[11px] text-zinc-400">No description provided.</p>
-                      <div className="grid grid-cols-3 gap-1 text-[10px] font-mono text-zinc-400">
-                        <div><span className="block text-zinc-500">PHOTOS</span><span className="text-zinc-200">12</span></div>
-                        <div><span className="block text-zinc-500">POINTS</span><span className="text-zinc-200">0</span></div>
-                        <div><span className="block text-zinc-500">MESH TRIS</span><span className="text-zinc-200">0</span></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between pt-3 border-t border-zinc-800/80 text-xs">
-                  <span className="text-zinc-500 font-mono text-[11px]">11/17/2026</span>
-                  <Link to="/new" className="btn-secondary px-3 py-1 text-xs">Open →</Link>
-                </div>
+              <div className="space-y-1.5 max-w-sm mx-auto">
+                <h3 className="text-sm font-semibold text-zinc-100">No Reconstruction Projects Yet</h3>
+                <p className="text-xs text-zinc-400 leading-relaxed">
+                  Start by uploading overlapping photographs of any physical object or capturing images with your camera.
+                </p>
               </div>
-
-              <div className="surface-card p-4 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-semibold text-sm text-zinc-100">debug</h3>
-                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-800 text-zinc-300 border border-zinc-700/60">Created</span>
-                  </div>
-                  <div className="flex gap-3 items-center mb-4">
-                    <div className="w-18 h-18 rounded-lg bg-zinc-950 border border-zinc-800 overflow-hidden shrink-0 flex items-center justify-center">
-                      <Box className="w-6 h-6 text-zinc-600" />
-                    </div>
-                    <div className="flex-1 space-y-2">
-                      <p className="text-[11px] text-zinc-400">No description provided.</p>
-                      <div className="grid grid-cols-3 gap-1 text-[10px] font-mono text-zinc-400">
-                        <div><span className="block text-zinc-500">PHOTOS</span><span className="text-zinc-200">0</span></div>
-                        <div><span className="block text-zinc-500">POINTS</span><span className="text-zinc-200">0</span></div>
-                        <div><span className="block text-zinc-500">MESH TRIS</span><span className="text-zinc-200">0</span></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center justify-between pt-3 border-t border-zinc-800/80 text-xs">
-                  <span className="text-zinc-500 font-mono text-[11px]">11/17/2026</span>
-                  <Link to="/new" className="btn-secondary px-3 py-1 text-xs">Open →</Link>
-                </div>
+              <div className="pt-2">
+                <Link
+                  to="/new"
+                  className="btn-primary inline-flex items-center space-x-2 px-4 py-2 text-xs"
+                >
+                  <Folder className="w-3.5 h-3.5" />
+                  <span>Create First Project</span>
+                </Link>
               </div>
-            </>
+            </div>
           )}
         </div>
       </div>

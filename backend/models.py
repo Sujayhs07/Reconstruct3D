@@ -42,7 +42,7 @@ class ProjectImage(Base):
     __tablename__ = "project_images"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
-    project_id: Mapped[str] = mapped_column(String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    project_id: Mapped[str] = mapped_column(String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
     filename: Mapped[str] = mapped_column(String(255), nullable=False)
     original_filename: Mapped[str] = mapped_column(String(255), nullable=False)
     file_path: Mapped[str] = mapped_column(String(500), nullable=False)
@@ -69,7 +69,7 @@ class FeatureMatch(Base):
     __tablename__ = "feature_matches"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
-    project_id: Mapped[str] = mapped_column(String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    project_id: Mapped[str] = mapped_column(String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
     image1_id: Mapped[str] = mapped_column(String(36), nullable=False)
     image2_id: Mapped[str] = mapped_column(String(36), nullable=False)
     image1_name: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -85,7 +85,7 @@ class ReconstructionLog(Base):
     __tablename__ = "reconstruction_logs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    project_id: Mapped[str] = mapped_column(String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    project_id: Mapped[str] = mapped_column(String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
     stage: Mapped[str] = mapped_column(String(50), nullable=False)
     message: Mapped[str] = mapped_column(Text, nullable=False)
     level: Mapped[str] = mapped_column(String(10), default="INFO")
@@ -97,7 +97,7 @@ class ReconstructionArtifact(Base):
     __tablename__ = "reconstruction_artifacts"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=generate_uuid)
-    project_id: Mapped[str] = mapped_column(String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    project_id: Mapped[str] = mapped_column(String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
     artifact_type: Mapped[str] = mapped_column(String(50), nullable=False)  # sparse_pcd, dense_pcd, cleaned_pcd, poisson_mesh, simplified_mesh, camera_poses
     file_path: Mapped[str] = mapped_column(String(500), nullable=False)
     filename: Mapped[str] = mapped_column(String(255), nullable=False)

@@ -13,7 +13,7 @@ import {
   Trash2,
   Database
 } from 'lucide-react';
-import { getHealth } from '../api/client';
+import { getHealth, getAppSettings, updateAppSettings } from '../api/client';
 
 export default function SettingsPage() {
   const [health, setHealth] = useState(null);
@@ -33,12 +33,30 @@ export default function SettingsPage() {
 
   useEffect(() => {
     getHealth().then((res) => setHealth(res.data)).catch(() => {});
+    getAppSettings().then((res) => {
+      if (res.data) {
+        if (res.data.cpu_threads) setCpuThreads(String(res.data.cpu_threads));
+        if (res.data.max_ram_mb) setMaxRamMb(String(res.data.max_ram_mb));
+        if (res.data.sift_features) setSiftFeatures(Number(res.data.sift_features));
+        if (res.data.poisson_depth) setPoissonDepth(Number(res.data.poisson_depth));
+      }
+    }).catch(() => {});
   }, []);
 
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     if (e) e.preventDefault();
-    setSavedNotice(true);
-    setTimeout(() => setSavedNotice(false), 2500);
+    try {
+      await updateAppSettings({
+        cpu_threads: cpuThreads,
+        max_ram_mb: maxRamMb,
+        sift_features: siftFeatures,
+        poisson_depth: poissonDepth,
+      });
+      setSavedNotice(true);
+      setTimeout(() => setSavedNotice(false), 2500);
+    } catch (err) {
+      console.error('Failed to save settings:', err);
+    }
   };
 
   const handleClearCache = () => {
