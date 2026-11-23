@@ -67,13 +67,25 @@ class GeminiVisionService:
             return cls._heuristic_coverage_analysis(valid_paths)
 
         try:
-            # Prepare image parts for Gemini payload
+            # Prepare image parts for Gemini payload (downscale preview to max 1024px to prevent memory spikes)
             contents_parts = []
             for idx, p in enumerate(valid_paths[:6]):
                 ext = p.suffix.lstrip(".").lower() or "jpg"
                 mime = "image/png" if ext == "png" else "image/jpeg"
-                with open(p, "rb") as f:
-                    b64_bytes = base64.b64encode(f.read()).decode("utf-8")
+                img = cv2.imread(str(p))
+                if img is not None:
+                    h, w = img.shape[:2]
+                    if max(h, w) > 1024:
+                        scale = 1024.0 / float(max(h, w))
+                        img = cv2.resize(img, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_AREA)
+                    _, enc = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 85])
+                    del img
+                    b64_bytes = base64.b64encode(enc.tobytes()).decode("utf-8")
+                    del enc
+                    mime = "image/jpeg"
+                else:
+                    with open(p, "rb") as f:
+                        b64_bytes = base64.b64encode(f.read()).decode("utf-8")
                 contents_parts.append({
                     "inline_data": {
                         "mime_type": mime,

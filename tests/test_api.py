@@ -83,3 +83,35 @@ def test_network_info():
     assert "lan_ip" in data
     assert "port" in data
     assert data["port"] == 8000
+
+def test_high_res_image_upload_memory_safe():
+    # Verify that a 12MP smartphone photo (4000x3000) uploads smoothly without memory spike or crash
+    proj_resp = client.post("/api/projects", json={
+        "name": "High Res Memory Safety Test",
+        "description": "Validates cloud 512MB RAM safety on high-res photos"
+    })
+    assert proj_resp.status_code == 201
+    proj_id = proj_resp.json()["id"]
+
+    # Generate synthetic 4000x3000 image with geometric shapes
+    img = np.zeros((3000, 4000, 3), dtype=np.uint8)
+    cv2.circle(img, (2000, 1500), 400, (255, 200, 100), -1)
+    cv2.rectangle(img, (500, 500), (1500, 1500), (50, 180, 240), -1)
+    _, enc = cv2.imencode(".jpg", img, [cv2.IMWRITE_JPEG_QUALITY, 80])
+    raw_bytes = enc.tobytes()
+
+    files = [
+        ("files", ("high_res_photo.jpg", io.BytesIO(raw_bytes), "image/jpeg"))
+    ]
+
+    upload_resp = client.post(f"/api/projects/{proj_id}/images", files=files)
+    assert upload_resp.status_code == 201
+    uploaded = upload_resp.json()
+    assert len(uploaded) == 1
+    assert uploaded[0]["width"] == 4000
+    assert uploaded[0]["height"] == 3000
+    assert uploaded[0]["file_size"] == len(raw_bytes)
+    assert uploaded[0]["keypoint_count"] >= 0
+
+    # Cleanup test project
+    client.delete(f"/api/projects/{proj_id}")

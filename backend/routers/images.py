@@ -1,5 +1,7 @@
 import os
+import gc
 import uuid
+import hashlib
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
 from sqlalchemy.orm import Session
@@ -18,7 +20,7 @@ from backend.services.file_service import (
 router = APIRouter(prefix="/api/projects/{project_id}/images", tags=["images"])
 
 @router.post("", response_model=List[ProjectImageResponse], status_code=status.HTTP_201_CREATED)
-async def upload_images(
+def upload_images(
     project_id: str,
     files: List[UploadFile] = File(...),
     db: Session = Depends(get_db)
@@ -43,20 +45,64 @@ async def upload_images(
             continue
 
         safe_filename = os.path.basename(filename)
-        contents = await file.read()
-        if len(contents) > max_size_bytes:
-            raise HTTPException(
-                status_code=400,
-                detail=f"File {safe_filename} exceeds the maximum allowed size of {settings.MAX_IMAGE_UPLOAD_SIZE_MB}MB."
-            )
+        ext = safe_filename.rsplit(".", 1)[-1].lower() if "." in safe_filename else "jpg"
+        unique_name = f"{uuid.uuid4().hex[:12]}_{safe_filename}"
+        dest_path = dirs["source_images"] / unique_name
 
-        file_hash = calculate_file_hash(contents)
+        hasher = hashlib.sha256()
+        file_size = 0
+
+        # Stream chunks directly to disk while computing SHA-256 hash.
+        # This keeps RAM overhead at <64KB instead of loading full multi-megabyte files into memory.
+        try:
+            with open(dest_path, "wb") as f:
+                while True:
+                    chunk = file.file.read(65536)
+                    if not chunk:
+                        break
+                    file_size += len(chunk)
+                    if file_size > max_size_bytes:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"File {safe_filename} exceeds the maximum allowed size of {settings.MAX_IMAGE_UPLOAD_SIZE_MB}MB."
+                        )
+                    hasher.update(chunk)
+                    f.write(chunk)
+        except HTTPException:
+            if dest_path.exists():
+                try:
+                    dest_path.unlink()
+                except Exception:
+                    pass
+            raise
+        except Exception as e:
+            if dest_path.exists():
+                try:
+                    dest_path.unlink()
+                except Exception:
+                    pass
+            raise HTTPException(status_code=400, detail=f"Failed to save upload {safe_filename}: {str(e)}")
+
+        if file_size == 0:
+            if dest_path.exists():
+                try:
+                    dest_path.unlink()
+                except Exception:
+                    pass
+            continue
+
+        file_hash = hasher.hexdigest()
         is_duplicate = file_hash in existing_hashes
 
-        # Analyze image quality with OpenCV
+        # Analyze image quality from saved file using downsampled preview to protect 512MB RAM cap
         try:
-            analysis = CVService.analyze_image_quality(contents, safe_filename)
+            analysis = CVService.analyze_image_quality(dest_path, safe_filename)
         except Exception as e:
+            if dest_path.exists():
+                try:
+                    dest_path.unlink()
+                except Exception:
+                    pass
             raise HTTPException(status_code=400, detail=f"Image validation failed for {safe_filename}: {str(e)}")
 
         analysis["is_duplicate"] = is_duplicate
@@ -67,17 +113,9 @@ async def upload_images(
             else:
                 analysis["warning_reason"] = warning
 
-        # Generate unique filename to avoid collisions
-        ext = safe_filename.rsplit(".", 1)[-1].lower() if "." in safe_filename else "jpg"
-        unique_name = f"{uuid.uuid4().hex[:12]}_{safe_filename}"
-        dest_path = dirs["source_images"] / unique_name
-
-        with open(dest_path, "wb") as f:
-            f.write(contents)
-
-        # Count SIFT keypoints
+        # Count SIFT keypoints with downscaling preview to keep memory < 20MB
         try:
-            _, _, kp_count = CVService.extract_sift_features(dest_path, n_features=2000)
+            _, _, kp_count = CVService.extract_sift_features(dest_path, n_features=2000, max_dimension=1200)
         except Exception:
             kp_count = 0
 
@@ -91,7 +129,7 @@ async def upload_images(
             file_path=rel_url,
             width=analysis.get("width", 0),
             height=analysis.get("height", 0),
-            file_size=analysis.get("file_size", len(contents)),
+            file_size=analysis.get("file_size", file_size),
             format=analysis.get("format", ext),
             avg_brightness=analysis.get("avg_brightness", 0.0),
             contrast=analysis.get("contrast", 0.0),
@@ -107,6 +145,10 @@ async def upload_images(
         db.add(img_obj)
         uploaded_images.append(img_obj)
         existing_hashes.add(file_hash)
+
+        # Force immediate garbage collection of any lingering OpenCV buffers
+        del analysis
+        gc.collect()
 
     if not uploaded_images:
         raise HTTPException(

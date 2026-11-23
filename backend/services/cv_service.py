@@ -1,4 +1,5 @@
 import os
+import gc
 import shutil
 import cv2
 import numpy as np
@@ -7,22 +8,39 @@ from typing import Tuple, Dict, Any, Optional
 
 class CVService:
     @staticmethod
-    def analyze_image_quality(image_bytes: bytes, filename: str) -> Dict[str, Any]:
+    def analyze_image_quality(image_input: bytes | Path | str, filename: str) -> Dict[str, Any]:
         """
         Analyzes image quality: dimensions, brightness, contrast, and Laplacian variance sharpness.
+        Accepts either raw bytes or file path (Path or str).
+        Memory-optimized for cloud deployment with 512MB RAM cap (Render free tier).
         """
-        np_arr = np.frombuffer(image_bytes, np.uint8)
-        img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+        if isinstance(image_input, (bytes, bytearray)):
+            np_arr = np.frombuffer(image_input, np.uint8)
+            img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+            file_size = len(image_input)
+            del np_arr
+        else:
+            img = cv2.imread(str(image_input))
+            file_size = os.path.getsize(str(image_input)) if os.path.exists(str(image_input)) else 0
 
         if img is None:
             raise ValueError(f"Failed to decode image: {filename}. Corrupt or unsupported format.")
 
-        height, width, channels = img.shape
-        file_size = len(image_bytes)
+        height, width = img.shape[:2]
         ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else "jpg"
 
-        # Convert to grayscale for illumination & gradient analysis
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        # Downsample preview if dimensions exceed 1200 px to prevent memory spike on low-RAM hosts
+        if max(height, width) > 1200:
+            scale = 1200.0 / float(max(height, width))
+            new_w = max(1, int(width * scale))
+            new_h = max(1, int(height * scale))
+            preview = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
+            del img
+            gray = cv2.cvtColor(preview, cv2.COLOR_BGR2GRAY)
+            del preview
+        else:
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            del img
 
         # 1. Average Brightness (0-255)
         avg_brightness = float(np.mean(gray))
@@ -30,10 +48,11 @@ class CVService:
         # 2. Contrast (standard deviation of pixel intensities)
         contrast = float(np.std(gray))
 
-        # 3. Sharpness using Laplacian variance
-        # High variance indicates sharp focus and edges; low variance indicates blur.
-        laplacian = cv2.Laplacian(gray, cv2.CV_64F)
+        # 3. Sharpness using Laplacian variance with CV_32F to save memory
+        laplacian = cv2.Laplacian(gray, cv2.CV_32F)
         sharpness = float(laplacian.var())
+        del gray, laplacian
+        gc.collect()
 
         # Quality criteria thresholds
         is_blurry = sharpness < 90.0
@@ -116,20 +135,38 @@ class CVService:
     @staticmethod
     def extract_sift_features(
         image_path: Path | str,
-        n_features: int = 2000
+        n_features: int = 2000,
+        max_dimension: Optional[int] = 1600
     ) -> Tuple[list, np.ndarray, int]:
         """
         Extracts SIFT keypoints and descriptors using OpenCV SIFT detector.
+        Memory-optimized: scales large images to max_dimension for efficient keypoint detection.
         """
         img = cv2.imread(str(image_path))
         if img is None:
             raise ValueError(f"Unable to load image for SIFT extraction: {image_path}")
 
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        h, w = img.shape[:2]
+        if max_dimension and max(h, w) > max_dimension:
+            scale = max_dimension / float(max(h, w))
+            new_w = max(1, int(w * scale))
+            new_h = max(1, int(h * scale))
+            preview = cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_AREA)
+            del img
+            gray = cv2.cvtColor(preview, cv2.COLOR_BGR2GRAY)
+            del preview
+        else:
+            gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+            del img
+
         sift = cv2.SIFT_create(nfeatures=n_features)
         keypoints, descriptors = sift.detectAndCompute(gray, None)
+        del gray, sift
+        gc.collect()
 
-        return keypoints, descriptors, len(keypoints)
+        kp_list = keypoints if keypoints is not None else []
+        kp_count = len(kp_list)
+        return kp_list, descriptors, kp_count
 
     @staticmethod
     def match_features_and_verify(
@@ -138,18 +175,31 @@ class CVService:
         output_vis_path: Path | str,
         n_features: int = 2000,
         ratio_threshold: float = 0.75,
-        ransac_threshold: float = 3.0
+        ransac_threshold: float = 3.0,
+        max_dimension: int = 1600
     ) -> Dict[str, Any]:
         """
         Extracts SIFT features from two images, performs KNN matching with Lowe's ratio test,
         and applies RANSAC geometric verification using the Fundamental Matrix.
         Renders side-by-side match visualization with inlier epipolar matches.
+        Memory-optimized to prevent OOM on 512MB RAM cloud tiers.
         """
         img1 = cv2.imread(str(img1_path))
         img2 = cv2.imread(str(img2_path))
 
         if img1 is None or img2 is None:
             raise ValueError("Failed to load one or both images for feature matching.")
+
+        # Scale down large images for feature matching to prevent high-res memory explosion
+        h1, w1 = img1.shape[:2]
+        if max(h1, w1) > max_dimension:
+            scale1 = max_dimension / float(max(h1, w1))
+            img1 = cv2.resize(img1, (int(w1 * scale1), int(h1 * scale1)), interpolation=cv2.INTER_AREA)
+
+        h2, w2 = img2.shape[:2]
+        if max(h2, w2) > max_dimension:
+            scale2 = max_dimension / float(max(h2, w2))
+            img2 = cv2.resize(img2, (int(w2 * scale2), int(h2 * scale2)), interpolation=cv2.INTER_AREA)
 
         gray1 = cv2.cvtColor(img1, cv2.COLOR_BGR2GRAY)
         gray2 = cv2.cvtColor(img2, cv2.COLOR_BGR2GRAY)
@@ -158,6 +208,8 @@ class CVService:
         sift = cv2.SIFT_create(nfeatures=n_features)
         kp1, des1 = sift.detectAndCompute(gray1, None)
         kp2, des2 = sift.detectAndCompute(gray2, None)
+        del gray1, gray2, sift
+        gc.collect()
 
         if des1 is None or des2 is None or len(kp1) < 4 or len(kp2) < 4:
             return {
@@ -209,6 +261,8 @@ class CVService:
 
         os.makedirs(os.path.dirname(output_vis_path), exist_ok=True)
         cv2.imwrite(str(output_vis_path), vis_img, [cv2.IMWRITE_JPEG_QUALITY, 90])
+        del img1, img2, vis_img
+        gc.collect()
 
         return {
             "total_matches": len(good_matches),
