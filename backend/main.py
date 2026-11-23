@@ -1,5 +1,6 @@
 import os
 import shutil
+import socket
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -20,6 +21,16 @@ from backend.routers import (
 
 # Initialize SQLite database schema
 Base.metadata.create_all(bind=engine)
+
+def get_lan_ip() -> str:
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -65,6 +76,15 @@ def health_check():
         "colmap_available": bool(os.path.exists(settings.COLMAP_PATH) or shutil.which(settings.COLMAP_PATH)),
         "colmap_path": settings.COLMAP_PATH,
         "storage_dir": str(settings.STORAGE_DIR)
+    }
+
+@app.get("/api/network-info")
+def network_info():
+    ip = get_lan_ip()
+    return {
+        "lan_ip": ip,
+        "port": 8000,
+        "base_url": f"http://{ip}:8000"
     }
 
 # Mount React production build if available (enables single-server deployment with SPA routing)

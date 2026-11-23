@@ -29,8 +29,8 @@ def save_dynamic_settings(updates: Dict[str, Any]) -> Dict[str, Any]:
     with open(SETTINGS_JSON_PATH, "w", encoding="utf-8") as f:
         json.dump(current, f, indent=2)
 
-    # Sync to .env file if meshy_api_key or hf_token was updated
-    env_keys = {"meshy_api_key": "MESHY_API_KEY", "hf_token": "HF_TOKEN"}
+    # Sync to .env file if meshy_api_key, hf_token, or gemini_api_key was updated
+    env_keys = {"meshy_api_key": "MESHY_API_KEY", "hf_token": "HF_TOKEN", "gemini_api_key": "GEMINI_API_KEY"}
     env_path = BASE_DIR / ".env"
     if env_path.exists():
         try:
@@ -66,6 +66,7 @@ class Settings(BaseSettings):
     COLMAP_PATH: str = os.getenv("COLMAP_PATH", str(DEFAULT_COLMAP_BAT if DEFAULT_COLMAP_BAT.exists() else "colmap"))
     MESHY_API_KEY: Optional[str] = os.getenv("MESHY_API_KEY", "")
     HF_TOKEN: Optional[str] = os.getenv("HF_TOKEN", "")
+    GEMINI_API_KEY: Optional[str] = os.getenv("GEMINI_API_KEY", "")
     MAX_IMAGE_UPLOAD_SIZE_MB: int = 50
     ALLOWED_EXTENSIONS: set[str] = {"jpg", "jpeg", "png", "webp"}
     CORS_ORIGINS: list[str] = ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"]

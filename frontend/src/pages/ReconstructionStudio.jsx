@@ -16,6 +16,7 @@ import {
   getReconstructionLogs
 } from '../api/client';
 import TerminalLogs from '../components/TerminalLogs';
+import CoverageRadar from '../components/CoverageRadar';
 
 const PIPELINE_STAGES = [
   { id: 'preprocessing', label: 'Plan & Validation', desc: 'Validating image resolution, clarity & foreground mask' },
@@ -193,6 +194,13 @@ export default function ReconstructionStudio() {
           <span>{errorBanner}</span>
         </div>
       )}
+
+      {/* 360° Angle Coverage & Gemini Missing Angle Guidance */}
+      <CoverageRadar
+        projectId={id}
+        imagesCount={project?.images?.length || 1}
+        onProceedToReconstruct={!isRunning ? handleStart : undefined}
+      />
 
       {/* 2. Main Two-Column Pipeline & Activity View matching Image 5 */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">

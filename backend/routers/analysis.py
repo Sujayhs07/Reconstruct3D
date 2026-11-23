@@ -3,8 +3,26 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.models import Project, ProjectImage
+from backend.services.file_service import get_project_dir
+from backend.services.gemini_service import GeminiVisionService
 
 router = APIRouter(prefix="/api/projects/{project_id}/analysis", tags=["analysis"])
+
+@router.get("/coverage")
+def get_project_angle_coverage(project_id: str, db: Session = Depends(get_db)):
+    """
+    Analyzes multi-view image set using Gemini Vision to assess 360° coverage,
+    identify missing angles, and generate capture instructions.
+    """
+    project = db.query(Project).filter(Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    p_dir = get_project_dir(project_id)
+    source_dir = p_dir / "source_images"
+    image_paths = sorted([p for p in source_dir.glob("*.*") if p.is_file()]) if source_dir.exists() else []
+
+    return GeminiVisionService.analyze_coverage_and_angles(image_paths)
 
 @router.get("")
 def get_project_image_analysis(project_id: str, db: Session = Depends(get_db)):

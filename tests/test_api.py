@@ -75,3 +75,11 @@ def test_project_crud_and_image_upload():
     # 7. Verify 404 after deletion
     check_resp = client.get(f"/api/projects/{proj_id}")
     assert check_resp.status_code == 404
+
+def test_network_info():
+    resp = client.get("/api/network-info")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert "lan_ip" in data
+    assert "port" in data
+    assert data["port"] == 8000

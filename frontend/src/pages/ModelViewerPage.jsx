@@ -7,10 +7,13 @@ import {
   Cpu,
   Info,
   CheckCircle2,
-  HardDrive
+  HardDrive,
+  QrCode,
+  Smartphone
 } from 'lucide-react';
 import { getProjectModels, getModelStats, getModelDownloadUrl } from '../api/client';
 import Viewer3D from '../components/Viewer3D';
+import MobileARModal from '../components/MobileARModal';
 
 export default function ModelViewerPage() {
   const { id } = useParams();
@@ -18,6 +21,7 @@ export default function ModelViewerPage() {
   const [stats, setStats] = useState({});
   const [selectedArtifact, setSelectedArtifact] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showARModal, setShowARModal] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -81,17 +85,38 @@ export default function ModelViewerPage() {
           })}
         </div>
 
-        {selectedArtifact && (
-          <a
-            href={getModelDownloadUrl(id, selectedArtifact.filename)}
-            download
-            className="btn-primary flex items-center justify-center space-x-1.5 px-3 py-1.5 text-xs w-full sm:w-auto"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span>Download {selectedArtifact.format.toUpperCase()}</span>
-          </a>
-        )}
+        <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+          {selectedArtifact && (
+            <button
+              onClick={() => setShowARModal(true)}
+              className="btn-primary flex items-center justify-center space-x-1.5 px-3 py-1.5 text-xs bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 shadow-md shadow-blue-500/20 border-0 hover:scale-[1.02] active:scale-[0.98] transition-all"
+              title="Scan QR Code to place this 3D model on your table in Augmented Reality"
+            >
+              <QrCode className="w-3.5 h-3.5" />
+              <span>📱 View in Mobile AR</span>
+            </button>
+          )}
+
+          {selectedArtifact && (
+            <a
+              href={getModelDownloadUrl(id, selectedArtifact.filename)}
+              download
+              className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium border border-zinc-700 flex items-center justify-center space-x-1.5 transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Download {selectedArtifact.format.toUpperCase()}</span>
+            </a>
+          )}
+        </div>
       </div>
+
+      {/* Mobile AR QR Code Modal */}
+      <MobileARModal
+        isOpen={showARModal}
+        onClose={() => setShowARModal(false)}
+        projectId={id}
+        modelName={selectedArtifact?.filename || '3D Object'}
+      />
 
       {/* 3D Viewer Cockpit */}
       <Viewer3D

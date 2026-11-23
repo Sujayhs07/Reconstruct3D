@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import DropzoneUpload from '../components/DropzoneUpload';
 import WebcamCapture from '../components/WebcamCapture';
+import CoverageRadar from '../components/CoverageRadar';
 import { getProjectImages, deleteImage } from '../api/client';
 
 export default function ImageAcquisition() {
@@ -86,6 +87,16 @@ export default function ImageAcquisition() {
         <DropzoneUpload projectId={id} onImagesUploaded={handleImagesAdded} />
       ) : (
         <WebcamCapture projectId={id} onImagesAdded={handleImagesAdded} />
+      )}
+
+      {/* 360° Angle Coverage Radar & Gemini Guidance */}
+      {images.length > 0 && (
+        <CoverageRadar
+          projectId={id}
+          imagesCount={images.length}
+          onCaptureRequested={() => setActiveTab('webcam')}
+          onProceedToReconstruct={() => navigate(`/projects/${id}/reconstruct`)}
+        />
       )}
 
       {/* Project Image Gallery */}

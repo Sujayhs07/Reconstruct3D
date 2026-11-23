@@ -8,6 +8,7 @@ const api = axios.create({
 });
 
 export const getHealth = () => api.get('/health');
+export const getNetworkInfo = () => api.get('/network-info');
 
 // Projects
 export const getProjects = () => api.get('/projects');
@@ -28,8 +29,9 @@ export const uploadImages = (projectId, formData, onUploadProgress) => {
 };
 export const deleteImage = (projectId, imageId) => api.delete(`/projects/${projectId}/images/${imageId}`);
 
-// Analysis
+// Analysis & Angle Coverage
 export const getImageAnalysis = (projectId) => api.get(`/projects/${projectId}/analysis`);
+export const getAngleCoverage = (projectId) => api.get(`/projects/${projectId}/analysis/coverage`);
 
 // Features
 export const getFeatureMatches = (projectId) => api.get(`/projects/${projectId}/features`);

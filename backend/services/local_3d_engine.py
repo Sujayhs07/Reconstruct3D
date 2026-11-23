@@ -31,17 +31,20 @@ class Local3DEngine:
         return sharpened
 
     @staticmethod
-    def extract_silhouette_profile(img_bgr: np.ndarray) -> Tuple[np.ndarray, np.ndarray, float, float]:
+    def extract_silhouette_profile(img_bgr: np.ndarray, box_2d: Optional[List[int]] = None) -> Tuple[np.ndarray, np.ndarray, float, float]:
         """
         Segments the foreground object and extracts vertical radius profile (r_left, r_right vs height).
-        Applies central saliency weighting to isolate handheld items (like bottles) from background persons.
+        Applies Gemini visual grounding bounding box if provided, or central saliency weighting.
         """
         h, w = img_bgr.shape[:2]
 
         # 1. Determine region of interest:
-        # If wide webcam aspect ratio (w > 1.2 * h), focus on central 55% corridor where user holds/places the object
+        # If Gemini visual grounding box is provided, use smart crop
         offset_x = 0
-        if w > int(1.2 * h):
+        if box_2d and len(box_2d) == 4:
+            from backend.services.gemini_service import GeminiVisionService
+            working_img = GeminiVisionService.smart_crop_object(img_bgr, box_2d)
+        elif w > int(1.2 * h):
             crop_w = int(w * 0.55)
             offset_x = int((w - crop_w) / 2)
             working_img = img_bgr[:, offset_x:offset_x + crop_w]
@@ -137,14 +140,27 @@ class Local3DEngine:
         exports_dir.mkdir(parents=True, exist_ok=True)
         point_clouds_dir.mkdir(parents=True, exist_ok=True)
 
+        # 1. Ask Gemini Vision Agent to evaluate object grounding and angles
+        gemini_boxes = []
+        try:
+            from backend.services.gemini_service import GeminiVisionService
+            coverage_info = GeminiVisionService.analyze_coverage_and_angles(image_paths[:4])
+            if log_callback and coverage_info.get("object_name"):
+                log_callback(f"Gemini AI Agent: Target identified as '{coverage_info['object_name']}' ({coverage_info.get('coverage_score', 0)}% 360° coverage).", "INFO")
+            for item in coverage_info.get("images_analyzed", []):
+                gemini_boxes.append(item.get("box_2d"))
+        except Exception:
+            pass
+
         loaded_images = []
         profiles = []
 
-        for p in image_paths[:4]:
+        for idx, p in enumerate(image_paths[:4]):
             img = cv2.imread(str(p))
             if img is not None:
                 enhanced = cls.enhance_image(img)
-                radii, mask, scale, cx = cls.extract_silhouette_profile(enhanced)
+                box = gemini_boxes[idx] if idx < len(gemini_boxes) else None
+                radii, mask, scale, cx = cls.extract_silhouette_profile(enhanced, box_2d=box)
                 loaded_images.append(enhanced)
                 profiles.append((radii, mask, scale, cx))
 
